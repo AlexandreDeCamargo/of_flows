@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "of_flows"
+version = "0.1.0"
+authors = [
+    {name = "Alexandre de Camargo", email = "decamara@mcmaster.ca"},
+]
+description = "A library for learning the ground state energy using orbital free density functional theory with continuous normalizing flows."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "jax>=0.6.0",
+    "jaxlib>=0.6.0",
+    "equinox>=0.12.0",
+    "diffrax>=0.7.0",
+    "optax>=0.2.0",
+    "flax>=0.10.0",
+    "orbax-checkpoint>=0.11.0",
+    "scipy>=1.15.0",
+    "chex>=0.1.89",
+    "jaxtyping>=0.3.0",
+    "distrax>=0.1.5",
+    "pyscf>=2.9.0",
+]
+
+[project.optional-dependencies]
+examples = [
+    "matplotlib>=3.10.0",
+    "pandas>=2.0.3",
+    "chex>=0.1.89",
+    "numpy>=2.3.0", 
+]
+
+[project.urls]
+Homepage = "https://github.com/AlexandreDeCamargo/of_flows"
+Repository = "https://github.com/AlexandreDeCamargo/of_flows"
+
+[tool.setuptools]
+packages = {find = {}}
