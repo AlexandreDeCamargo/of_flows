@@ -38,3 +38,7 @@ from train.loss import (
 from train.utils import (
     step
 )
+
+from config._config import (
+    Config 
+)

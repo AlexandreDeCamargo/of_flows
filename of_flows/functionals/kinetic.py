@@ -1,4 +1,5 @@
 import jax 
+from jax import lax
 import jax.numpy as jnp
 import equinox as eqx
 from jaxtyping import Array, Float, Int, Scalar
@@ -163,7 +164,8 @@ class Weizsacker(eqx.Module):
             Kinetic energy density at each batch point.
         """
         score_sqr = jnp.einsum('ij,ij->i', score, score)
-        return (self.lambda_0 * Ne / 8.) * score_sqr
+        return (self.lambda_0*Ne/8.)*lax.expand_dims(score_sqr, (1,))
+
         
 
 

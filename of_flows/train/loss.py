@@ -7,7 +7,7 @@ from functionals.external import NuclearPotential
 from functionals.core_correction import KatoCondition
 from functionals.functional import CompositeFunctional
 from ode_solver.eqx_ode import fwd_ode
-
+import jax
 class F_values(NamedTuple):
     """Container for energy components."""
     energy: float
@@ -89,6 +89,7 @@ def create_loss_function(
         Compute the loss function.
         """
         x, log_px, _score = fwd_ode(model, z_and_logpz, solver)
+        
         bs = int(x.shape[0] / 2)
         
         den_all, x_all, score_all = jnp.exp(log_px), x, _score

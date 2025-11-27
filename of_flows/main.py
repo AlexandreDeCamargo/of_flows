@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 from train.loop import training
-
+from config._config import Config
 
 def setup_directories(args):
     """Create and return directory paths for results, checkpoints, and figures."""
@@ -49,9 +49,9 @@ def main():
     # Model parameters
     parser.add_argument("--mol_name", type=str, default='H2',
                         help="Molecule name")
-    parser.add_argument("--epochs", type=int, default=5000, 
+    parser.add_argument("--epochs", type=int, default=2000, 
                         help="Number of training epochs")
-    parser.add_argument("--bs", type=int, default=128,
+    parser.add_argument("--bs", type=int, default=512,
                         help="Batch size")
     parser.add_argument("--hl", type=int, default=64,
                         help="Hidden layer size")
@@ -87,8 +87,11 @@ def main():
     
     args = parser.parse_args()
     
+    Config.from_args(args)
+    
     # Setup directories
     results_dir, ckpt_dir = setup_directories(args)
+    Config.set_directories(results_dir, ckpt_dir)
     
     # Save parameters
     job_params = save_job_params(results_dir, args)
@@ -114,15 +117,10 @@ def main():
         checkpoint_dir=ckpt_dir,
         checkpoint_freq=args.ckpt_freq,
     )
-    
-    # Save training results
-    df.to_csv(f"{results_dir}/training_metrics.csv", index=False)
-    df_ema.to_csv(f"{results_dir}/training_metrics_ema.csv", index=False)
-    
+
     print(f"\nTraining complete!")
     print(f"Results saved to: {results_dir}")
     print(f"Final energy (EMA): {df_ema['E'].iloc[-1]:.6f}")
-
 
 if __name__ == "__main__":
     main()

@@ -2,3 +2,8 @@
 Results/
 of_flows.egg-info/
 dist/
+plot_promol.py 
+plot_rev.py 
+test.py 
+Figures/ 
+AtomDB/ 

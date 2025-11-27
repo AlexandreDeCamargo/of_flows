@@ -4,11 +4,10 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 import jax.random as jrnd
-from jax import jit,grad,vmap,hessian,jacrev,lax 
-from jaxtyping import Array, Float
+from jax import jit,grad,vmap,hessian,lax 
+from jaxtyping import Array
 from jax._src import prng
 
-import pyscf 
 from pyscf.data.nist import BOHR
 
 import optax
@@ -103,13 +102,17 @@ def batch_generator(key: prng.PRNGKeyArray, batch_size: int, prior_dist):
     if hasattr(prior_dist, 'score'):
         v_score = prior_dist.score
     else:
-        v_score = jax.vmap(jax.grad(lambda x: prior_dist.log_prob(x).sum()))
+        # v_score = jax.vmap(jax.grad(lambda x: prior_dist.log_prob(x).sum()))
+        v_score = vmap(jax.jacrev(lambda x:
+                              prior_dist.log_prob(x)))
     
     while True:
         _, key = jrnd.split(key)
         samples = prior_dist.sample(seed=key, sample_shape=batch_size)
         logp_samples = prior_dist.log_prob(samples)
         score = v_score(samples)
+        # print("samples",samples)
+        # print("score",score)
         samples0 = lax.concatenate((samples, logp_samples, score), 1)
 
         _, key = jrnd.split(key)
@@ -117,7 +120,7 @@ def batch_generator(key: prng.PRNGKeyArray, batch_size: int, prior_dist):
         logp_samples = prior_dist.log_prob(samples)
         score = v_score(samples)
         samples1 = lax.concatenate((samples, logp_samples, score), 1)
-
+        # return lax.concatenate((samples0, samples1), 0)
         yield lax.concatenate((samples0, samples1), 0)
 
 def batch_generator_(key: prng.PRNGKeyArray, batch_size: int, prior_dist: Callable):

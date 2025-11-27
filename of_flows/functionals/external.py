@@ -49,6 +49,7 @@ class NuclearPotential(eqx.Module):
         Float[Array, "batch"]
             Electron-nuclei interaction potential at each point x.
         """
+        
         def _potential(x: Array, molecule: Array) -> Array:
             r = jnp.sqrt(
                 jnp.sum((x - molecule['coords']) * (x - molecule['coords']), axis=1)
@@ -58,7 +59,7 @@ class NuclearPotential(eqx.Module):
 
         r = vmap(_potential, in_axes=(None, 0), out_axes=-1)(x, mol_info)
         r = jnp.sum(r, axis=-1, keepdims=True)
-        return -Ne * r.squeeze()
+        return -Ne * r
 
 
 class NuclearPotential1D(eqx.Module):
