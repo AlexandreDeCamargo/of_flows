@@ -14,9 +14,12 @@ class _Flow(eqx.Module):
         dim: Int[Scalar, ""], 
         key: jax.random.PRNGKey
     ):
-        self.linear_in = eqx.nn.Linear(din + 1, dim, key=key)  # +1 for time
-        self.blocks = [eqx.nn.Linear(dim, dim, key=subkey) for subkey in jax.random.split(key, 3)]
-        self.linear_out = eqx.nn.Linear(dim, din, key=key)
+        keys = jax.random.split(key, 5)
+        
+        self.linear_in = eqx.nn.Linear(din + 1, dim, key=keys[0])
+        self.blocks = [eqx.nn.Linear(dim, dim, key=k) for k in jax.random.split(keys[1], 3)]
+        self.linear_out = eqx.nn.Linear(dim, din, key=keys[2])        
+
     def __call__(
         self, 
         t, 

@@ -70,9 +70,13 @@ def rev_ode(flow_model, z_and_logpz, solver):
     # z_t, logp_diff_t, _ = sol.ys[:-1, :, :data_dim], sol.ys[:-1, :, data_dim:data_dim+1], sol.ys[:, :, data_dim+1:]
     # z_t0, logp_diff_t0 = sol.ys[:-1, :, :data_dim], sol.ys[:-1, :, data_dim:data_dim+1]
     # return sol.ys
-    z_t, logp_diff_t, _ = sol.ys[:-1, :, :data_dim], sol.ys[:-1, :, data_dim:data_dim+1], sol.ys[:, :, data_dim+1:]
-    z_t0, logp_diff_t0 = z_t[-1], logp_diff_t[-1]
+    z_t, logp_diff_t, score_diff_t = sol.ys[:, :, :data_dim], sol.ys[:, :, data_dim:data_dim+1], sol.ys[:, :, data_dim+1:]
+    z_t0, logp_diff_t0, score_diff_t0 = z_t[-1], logp_diff_t[-1], score_diff_t[-1]
     return z_t0, logp_diff_t0
+
+    # z_t, logp_diff_t, _ = sol.ys[:-1, :, :data_dim], sol.ys[:-1, :, data_dim:data_dim+1], sol.ys[:, :, data_dim+1:]
+    # z_t0, logp_diff_t0 = z_t[-1], logp_diff_t[-1]
+    # return z_t0, logp_diff_t0
 
 
 

@@ -96,6 +96,7 @@ def training(mol_name: str,
             lr: float = 1e-5,
             scheduler_type: str = 'ones',
             solver_type: str = 'tsit5',
+            prior_type: str = 'promolecular',
             prior_dist: Optional[ProMolecularDensity] = None,
             checkpoint_dir: str = './checkpoints',
             checkpoint_freq: int = 50,
@@ -131,8 +132,10 @@ def training(mol_name: str,
         Type of learning rate scheduler
     solver_type : str
         ODE solver type
+    prior_type: str
+        Type of prior distribution for sampling  
     prior_dist : ProMolecularDensity, optional
-        Prior distribution for sampling
+        Initial distribution 
     checkpoint_dir : str
         Directory to save checkpoints
     checkpoint_freq : int
@@ -153,73 +156,30 @@ def training(mol_name: str,
     
     key = jrnd.PRNGKey(0)
     _, key = jrnd.split(key)
-    
-    prior_dist = ProMolecularDensity(z.ravel(), coords)
-    
-    db_prior = make_promolecule(atnums=z, coords=coords, dataset="slater")
-    # n_samples = batch_size
-    # rad_grid = jnp.linspace(-3.01, 3,n_samples)
-    # promol_dens = db_prior.density(
-    #     jnp.array([jnp.zeros_like(rad_grid), jnp.zeros_like(rad_grid),rad_grid]).T
-    # )
-    # sampled_indices = jax.random.choice(
-    #     key, 
-    #     a=len(rad_grid),           
-    #     shape=(n_samples,3),         
-    #     replace=True,               
-    #     p=promol_dens                        
-    # )
-    # promol_grad = db_prior.gradient(
-    # jnp.array([jnp.zeros_like(rad_grid), jnp.zeros_like(rad_grid),rad_grid]).T
-    # )
 
-    # promol_score = promol_grad/promol_dens.reshape(-1,1) 
-    
-    # db_prior_dist = rad_grid[sampled_indices]
-    # samples = db_prior_dist
-    # # samples = prior_dist.sample(seed=key, sample_shape=batch_size)
-    # print(samples.shape)
-    # assert 0 
-
-    # db_prior_dist = RadialDensityDistribution(
-    # db_prior=db_prior,
-    # z=z,
-    # coords=coords,
-    # grid_range=(-3.01, 3.0),
-    # n_grid_points=10000
-    # )
-
-    # db_target_dist = DFTGridDistribution(
-    # db_prior=db_prior,
-    # atoms=atoms,
-    # coords=coords
-    # )
-
-    db_target_dist = AtomDBDistribution(
-    db_prior=db_prior,
-    z=z,
-    coords=coords,
-    Ne = Ne
-    )
-
-    
     flow_model = setup_model(coords, z, hidden_layer, key)
-    
     solver = get_solver(solver_type)
     optimizer, optimizer_state = setup_optimizer(flow_model, epochs, lr, scheduler_type)
     energies_ema, energies_state = setup_ema()
-    
-    db_prior_dist = SIRDistribution(
-    base_distribution=prior_dist,
-    target_distribution=db_target_dist,
-    oversampling_factor=100
-)
+    prior_dist = ProMolecularDensity(z.ravel(), coords)
 
-    # Now use with batch generator
-    db_gen_batches = batch_generator(key, batch_size,db_prior_dist)
+    if prior_type == 'db_sir':
+        db_prior = make_promolecule(atnums=z, coords=coords, dataset="slater")
+        db_target_dist = AtomDBDistribution(
+            db_prior=db_prior,
+            z=z,
+            coords=coords,
+            Ne=Ne
+        )
+        sampling_dist = SIRDistribution(
+            base_distribution=prior_dist,
+            target_distribution=db_target_dist,
+            oversampling_factor=100
+        )
+    else: 
+        sampling_dist = prior_dist
 
-    # db_gen_batches = batch_generator(key, batch_size, db_prior_dist)
-    # gen_batches = batch_generator(key, batch_size, prior_dist)
+    gen_batches = batch_generator(key, batch_size, sampling_dist)
     
     grad_loss_fn = create_loss_function(
         kinetic_name=tw_kin,
@@ -237,11 +197,9 @@ def training(mol_name: str,
     for itr in range(epochs + 1):
         start_time = time.time()
         
-        # batch = next(gen_batches)
-        batch = next(db_gen_batches)
+        batch = next(gen_batches)
+        # batch = next(db_gen_batches)
         
-        # print('db_batch',db_batch)
-        # assert 0 
         loss, flow_model, optimizer_state = step(
             flow_model, batch, optimizer, optimizer_state, 
             grad_loss_fn, solver, Ne, mol

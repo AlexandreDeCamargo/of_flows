@@ -6,7 +6,7 @@ from config._config import Config
 
 def setup_directories(args):
     """Create and return directory paths for results, checkpoints, and figures."""
-    results_dir = f"Results/{args.mol_name}_{args.cc}_{args.x}_{args.c}_{args.solver}"
+    results_dir = f"Results/{args.mol_name}_{args.cc}_{args.x}_{args.c}_{args.solver}_{args.prior}"
     if args.sched.lower() not in ['c', 'const']:
         results_dir += f"_sched_{args.sched.upper()}"
     
@@ -35,6 +35,7 @@ def save_job_params(results_dir, args):
         'core_correction': args.cc,
         'scheduler': args.sched,
         'solver': args.solver,
+        'prior' : args.prior,
     }
     
     with open(f"{results_dir}/job_params.json", "w") as outfile:
@@ -47,9 +48,9 @@ def main():
     parser = argparse.ArgumentParser()
     
     # Model parameters
-    parser.add_argument("--mol_name", type=str, default='H2',
+    parser.add_argument("--mol_name", type=str, default='H',
                         help="Molecule name")
-    parser.add_argument("--epochs", type=int, default=2000, 
+    parser.add_argument("--epochs", type=int, default=5000, 
                         help="Number of training epochs")
     parser.add_argument("--bs", type=int, default=512,
                         help="Batch size")
@@ -57,6 +58,9 @@ def main():
                         help="Hidden layer size")
     parser.add_argument("--lr", type=float, default=3e-4,
                         help="Learning rate")
+    parser.add_argument("--prior", type=str, default='promolecular',
+                    choices=['promolecular', 'db_sir'],
+                    help="Prior distribution type")
     
     # Functionals
     parser.add_argument("--kin", type=str, default='tf_w',
@@ -79,7 +83,7 @@ def main():
     # Training settings
     parser.add_argument("--sched", type=str, default='mix',
                         help="Learning rate scheduler type")
-    parser.add_argument("--solver", type=str, default='dopri5',
+    parser.add_argument("--solver", type=str, default='dopri8',
                         choices=['dopri5', 'tsit5'],
                         help="ODE solver")
     parser.add_argument("--ckpt_freq", type=int, default=50,
@@ -114,6 +118,7 @@ def main():
         lr=args.lr,
         scheduler_type=args.sched,
         solver_type=args.solver,
+        prior_type = args.prior,
         checkpoint_dir=ckpt_dir,
         checkpoint_freq=args.ckpt_freq,
     )

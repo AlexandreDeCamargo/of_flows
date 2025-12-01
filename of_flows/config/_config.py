@@ -11,6 +11,7 @@ class Config:
     bs = None
     hl = None
     lr = None
+    prior = None 
     
     # Functionals
     kin = None
@@ -43,7 +44,8 @@ class Config:
         cls.bs = args.bs
         cls.hl = args.hl
         cls.lr = args.lr
-        
+        cls.prior = args.prior
+
         # Functionals
         cls.kin = args.kin
         cls.nuc = args.nuc
@@ -77,7 +79,8 @@ class Config:
             'epochs': cls.epochs,
             'bs': cls.bs,
             'hl': cls.hl,
-            'lr': cls.lr
+            'lr': cls.lr,
+            'prior': cls.prior 
         }
     
     @classmethod
@@ -98,7 +101,7 @@ class Config:
         return (
             f"Config(\n"
             f"  Model: mol_name={cls.mol_name}, epochs={cls.epochs}, "
-            f"bs={cls.bs}, hl={cls.hl}, lr={cls.lr}\n"
+            f"bs={cls.bs}, hl={cls.hl}, lr={cls.lr}, prior={cls.prior}\n"
             f"  Functionals: kin={cls.kin}, x={cls.x}, c={cls.c}, cc={cls.cc}\n"
             f"  Directories: results={cls.results_dir}, ckpt={cls.ckpt_dir}\n"
             f")"

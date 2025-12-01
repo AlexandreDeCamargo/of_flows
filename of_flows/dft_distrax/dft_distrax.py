@@ -160,11 +160,6 @@ class DFTDistribution(distrax.Distribution):
             #atoms = self.get_molecule()
             mol = gto.M(atom=atoms, basis=self.basis_set,
                     unit='B')
-            # For molecules, sum spins (simplistic approach; may need refinement)
-            #spin = sum(spin_dict.get(atom, 0) for atom in self.atoms)
-            #spin = spin % 2  # Ensures reasonable default (not always correct)
-    
-        #mol = gto.M(atom=atoms, basis=self.basis_set, unit='B', spin=spin)
         return mol
     
     def _dft(self):
@@ -174,8 +169,8 @@ class DFTDistribution(distrax.Distribution):
         B88_X = 1.
         VWN_C = 1.
 
-        #mf_hf.xc = f'{LDA_X:} * LDA + {B88_X:} * B88, {VWN_C:} * VWN'
-        mf_hf.xc = f'{LDA_X:} * LDA'
+        mf_hf.xc = f'{LDA_X:} * LDA + {B88_X:} * B88, {VWN_C:} * VWN'
+        # mf_hf.xc = f'{LDA_X:} * LDA'
         mf_hf = mf_hf.newton() # second-order algortihm
         mf_hf.kernel()
         dm = mf_hf.make_rdm1()

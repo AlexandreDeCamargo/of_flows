@@ -282,7 +282,7 @@ class AtomDBDistribution:
         density = self.db_prior.density(values) / self.Ne
         gradient = self.db_prior.gradient(values)
         
-        score = gradient / density.reshape(-1, 1)
+        score = gradient / jnp.maximum(density.reshape(-1, 1), 1e-30)
         # score = jnp.nan_to_num(score, nan=0.0, posinf=0.0, neginf=0.0)
   
         return score

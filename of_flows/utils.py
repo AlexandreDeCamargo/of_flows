@@ -111,16 +111,14 @@ def batch_generator(key: prng.PRNGKeyArray, batch_size: int, prior_dist):
         samples = prior_dist.sample(seed=key, sample_shape=batch_size)
         logp_samples = prior_dist.log_prob(samples)
         score = v_score(samples)
-        # print("samples",samples)
-        # print("score",score)
         samples0 = lax.concatenate((samples, logp_samples, score), 1)
-
+        
         _, key = jrnd.split(key)
         samples = prior_dist.sample(seed=key, sample_shape=batch_size)
         logp_samples = prior_dist.log_prob(samples)
         score = v_score(samples)
         samples1 = lax.concatenate((samples, logp_samples, score), 1)
-        # return lax.concatenate((samples0, samples1), 0)
+    
         yield lax.concatenate((samples0, samples1), 0)
 
 def batch_generator_(key: prng.PRNGKeyArray, batch_size: int, prior_dist: Callable):

@@ -57,6 +57,7 @@ class KatoCondition(eqx.Module):
         Float[Array, "batch"]
             Kato condition term at each batch point.
         """
+        
         def _wi(x: Array, molecule: Array) -> Array:
             r = jnp.sqrt(
                 jnp.sum((x - molecule['coords']) * (x - molecule['coords']), axis=1)
@@ -69,8 +70,10 @@ class KatoCondition(eqx.Module):
         
         score_sqr = jnp.einsum('ij,ij->i', score, score)
         weizs = (0.2 / 8.0) * lax.expand_dims(score_sqr, (1,))
+        # weizs = (0.2 / 8.0) * lax.expand_dims(score_sqr, (1,))
         
         kinetic = jnp.abs(weizs - (molecule['z']**2 / 2))
         term = jnp.sum(kinetic * _wi_mapped, axis=-1, keepdims=True)
         
-        return Ne * term.squeeze()
+        return Ne * term
+    
