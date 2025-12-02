@@ -45,7 +45,7 @@ FUNCTIONAL_CLASSES = {
 def create_loss_function(
     kinetic_name: str = 'tf',
     exchange_name: str = 'lda',
-    correlation_name: str = 'vwn_c',
+    correlation_name: str = 'none',
     hartree_name: str = 'coulomb',
     external_name: str = 'np',
     core_correction_name: str = 'none'
@@ -75,7 +75,6 @@ def create_loss_function(
    
     t_functional = FUNCTIONAL_CLASSES[kinetic_name]()
     x_functional = FUNCTIONAL_CLASSES[exchange_name]()
-    c_functional = FUNCTIONAL_CLASSES[correlation_name]()
     h_functional = FUNCTIONAL_CLASSES[hartree_name]()
     n_functional = FUNCTIONAL_CLASSES[external_name]()
     
@@ -83,6 +82,11 @@ def create_loss_function(
         cc_functional = FUNCTIONAL_CLASSES[core_correction_name]()
     else:
         cc_functional = None
+    
+    if correlation_name != 'none':
+        c_functional = FUNCTIONAL_CLASSES[correlation_name]()
+    else:
+        c_functional = None
     
     def grad_loss(model, z_and_logpz, solver, Ne, mol):
         """
@@ -110,7 +114,11 @@ def create_loss_function(
         x_e = x_functional(den, score, Ne)
         
         # Correlation energy
-        c_e = c_functional(den, score, Ne)
+        if c_functional is not None: 
+            c_e = c_functional(den, score, Ne)
+        else: 
+            c_e = 0.0 
+        
         xc_e = x_e + c_e
         
         # Core correction

@@ -46,9 +46,9 @@ def save_job_params(results_dir, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    
+    ['H','He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
     # Model parameters
-    parser.add_argument("--mol_name", type=str, default='H',
+    parser.add_argument("--mol_name", type=str, default='H2',
                         help="Molecule name")
     parser.add_argument("--epochs", type=int, default=5000, 
                         help="Number of training epochs")
@@ -58,7 +58,7 @@ def main():
                         help="Hidden layer size")
     parser.add_argument("--lr", type=float, default=3e-4,
                         help="Learning rate")
-    parser.add_argument("--prior", type=str, default='promolecular',
+    parser.add_argument("--prior", type=str, default='db_sir',
                     choices=['promolecular', 'db_sir'],
                     help="Prior distribution type")
     
@@ -73,8 +73,8 @@ def main():
     parser.add_argument("--x", type=str, default='lda',
                         choices=['lda', 'b88_x'],
                         help="Exchange energy functional")
-    parser.add_argument("--c", type=str, default='vwn_c',
-                        choices=['vwn_c', 'pw92_c'],
+    parser.add_argument("--c", type=str, default='none',
+                        choices=['vwn_c', 'pw92_c', 'none'],
                         help="Correlation energy functional")
     parser.add_argument("--cc", type=str, default='kato',
                         choices=['kato', 'none'],
