@@ -6,7 +6,8 @@ from config._config import Config
 
 def setup_directories(args):
     """Create and return directory paths for results, checkpoints, and figures."""
-    results_dir = f"Results/{args.mol_name}_{args.cc}_{args.x}_{args.c}_{args.solver}_{args.prior}"
+    # results_dir = f"Results/{args.mol_name}_{args.cc}_{args.x}_{args.c}_{args.solver}_{args.prior}"
+    results_dir = f"Results/{args.mol_name}_bl_{args.bond_length:.4f}_{args.cc}_{args.x}_{args.c}_{args.solver}_{args.prior}"
     if args.sched.lower() not in ['c', 'const']:
         results_dir += f"_sched_{args.sched.upper()}"
     
@@ -23,6 +24,7 @@ def save_job_params(results_dir, args):
     """Save training parameters to JSON file."""
     job_params = {
         'mol_name': args.mol_name,
+        'bond_length': args.bond_length,
         'epochs': args.epochs,
         'batch_size': args.bs,
         'hidden_layer': args.hl, 
@@ -46,10 +48,11 @@ def save_job_params(results_dir, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    ['H','He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
     # Model parameters
     parser.add_argument("--mol_name", type=str, default='H2',
                         help="Molecule name")
+    parser.add_argument("--bond_length", type=float, default=1.4008538753, 
+                        help="Bond length for H2 (Angstroms)")
     parser.add_argument("--epochs", type=int, default=5000, 
                         help="Number of training epochs")
     parser.add_argument("--bs", type=int, default=512,
@@ -76,7 +79,7 @@ def main():
     parser.add_argument("--c", type=str, default='none',
                         choices=['vwn_c', 'pw92_c', 'none'],
                         help="Correlation energy functional")
-    parser.add_argument("--cc", type=str, default='kato',
+    parser.add_argument("--cc", type=str, default='none',
                         choices=['kato', 'none'],
                         help="Core correction functional")
     
@@ -84,9 +87,9 @@ def main():
     parser.add_argument("--sched", type=str, default='mix',
                         help="Learning rate scheduler type")
     parser.add_argument("--solver", type=str, default='dopri8',
-                        choices=['dopri5', 'tsit5'],
+                        choices=['dopri5', 'tsit5','dopri8'],
                         help="ODE solver")
-    parser.add_argument("--ckpt_freq", type=int, default=50,
+    parser.add_argument("--ckpt_freq", type=int, default=15,
                         help="Checkpoint saving frequency (epochs)")
     
     args = parser.parse_args()
@@ -106,6 +109,7 @@ def main():
     # Run training
     model, df, df_ema = training(
         mol_name=args.mol_name,
+        bond_length=args.bond_length,
         tw_kin=args.kin,
         n_pot=args.nuc,
         h_pot=args.hart,

@@ -10,7 +10,7 @@ from typing import Optional
 
 from flow.equiv_flows import CNF
 from of_flows.utils import one_hot_encode, coordinates, batch_generator, get_solver, get_scheduler
-from promolecular.promolecular_dist import AtomDBDistribution,SIRDistribution,ProMolecularDensity,RadialDensityDistribution
+from promolecular.promolecular_dist import AtomDBDistribution,SIRDistribution,ProMolecularDensity
 from train.utils import step 
 from train.loss import create_loss_function, F_values
 from atomdb import make_promolecule
@@ -19,9 +19,9 @@ from config._config import Config
 jax.config.update("jax_enable_x64", True)
 
 
-def setup_molecule(mol_name: str):
+def setup_molecule(mol_name: str, bond_length: float = 1.4008538753):
     """Setup molecular system."""
-    Ne, atoms, z, coords = coordinates(mol_name)
+    Ne, atoms, z, coords = coordinates(mol_name, bond_length)
     mol = {'coords': coords, 'z': z}
     return Ne, atoms, z, coords, mol
 
@@ -84,6 +84,7 @@ def log_metrics(itr: int, loss_epoch: float, losses: F_values,
 
 
 def training(mol_name: str,
+            bond_length: float = 1.4008538753, 
             tw_kin: str = 'tf_w',
             n_pot: str = 'np',
             h_pot: str = 'coulomb',
@@ -108,6 +109,8 @@ def training(mol_name: str,
     ----------
     mol_name : str
         Name of molecule
+    bond_length: float 
+        Bond length in a.u. 
     tw_kin : str
         Kinetic functional name
     n_pot : str
@@ -152,7 +155,7 @@ def training(mol_name: str,
     """
     
     # Setup
-    Ne, atoms, z, coords, mol = setup_molecule(mol_name)
+    Ne, atoms, z, coords, mol = setup_molecule(mol_name, bond_length)
     
     key = jrnd.PRNGKey(0)
     _, key = jrnd.split(key)
@@ -164,7 +167,7 @@ def training(mol_name: str,
     prior_dist = ProMolecularDensity(z.ravel(), coords)
 
     if prior_type == 'db_sir':
-        db_prior = make_promolecule(atnums=z, coords=coords, dataset="slater")
+        db_prior = make_promolecule(atnums=z, coords=coords, dataset="hci")
         db_target_dist = AtomDBDistribution(
             db_prior=db_prior,
             z=z,
@@ -174,11 +177,11 @@ def training(mol_name: str,
         sampling_dist = SIRDistribution(
             base_distribution=prior_dist,
             target_distribution=db_target_dist,
-            oversampling_factor=100
+            oversampling_factor=500
         )
     else: 
         sampling_dist = prior_dist
-
+    
     gen_batches = batch_generator(key, batch_size, sampling_dist)
     
     grad_loss_fn = create_loss_function(

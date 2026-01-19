@@ -92,89 +92,89 @@ class ProMolecularDensity(distrax.Distribution):
                                  self.log_prob(x).sum()))(values)
 
 
-class RadialDensityDistribution:
-    """Distribution based on radial density sampling."""
+# class RadialDensityDistribution:
+#     """Distribution based on radial density sampling."""
     
-    def __init__(self, db_prior, z, coords, grid_range=(-3.01, 3.0), n_grid_points=1000):
-        self.db_prior = db_prior
-        self.z = z
-        self.coords = coords
-        self.n_grid_points = n_grid_points
+#     def __init__(self, db_prior, z, coords, grid_range=(-3.01, 3.0), n_grid_points=1000):
+#         self.db_prior = db_prior
+#         self.z = z
+#         self.coords = coords
+#         self.n_grid_points = n_grid_points
 
-        x = jnp.linspace(-3, 3, 100)
-        y = jnp.linspace(-3, 3, 100)
+#         x = jnp.linspace(-3, 3, 100)
+#         y = jnp.linspace(-3, 3, 100)
 
-        X, Y = jnp.meshgrid(x, y)
-        Z = jnp.zeros_like(X)
+#         X, Y = jnp.meshgrid(x, y)
+#         Z = jnp.zeros_like(X)
 
-        points = jnp.array([X.flatten(), Y.flatten(), Z.flatten()]).T
-        # Pre-compute the radial grid
-        self.rad_grid = jnp.linspace(grid_range[0], grid_range[1], n_grid_points)
+#         points = jnp.array([X.flatten(), Y.flatten(), Z.flatten()]).T
+#         # Pre-compute the radial grid
+#         self.rad_grid = jnp.linspace(grid_range[0], grid_range[1], n_grid_points)
         
-        # Compute density along z-axis
-        grid_points = jnp.array([
-            jnp.zeros_like(self.rad_grid), 
-            jnp.zeros_like(self.rad_grid), 
-            self.rad_grid
-        ]).T
+#         # Compute density along z-axis
+#         grid_points = jnp.array([
+#             jnp.zeros_like(self.rad_grid), 
+#             jnp.zeros_like(self.rad_grid), 
+#             self.rad_grid
+#         ]).T
         
-        self.promol_dens = self.db_prior.density(grid_points)
-        # self.p = self.promol_dens
-        self.p = self.promol_dens /jnp.sum(self.promol_dens)
+#         self.promol_dens = self.db_prior.density(grid_points)
+#         # self.p = self.promol_dens
+#         self.p = self.promol_dens /jnp.sum(self.promol_dens)
         
-        # Pre-compute gradient
-        self.promol_grad = self.db_prior.gradient(grid_points)
+#         # Pre-compute gradient
+#         self.promol_grad = self.db_prior.gradient(grid_points)
         
-        # Compute score (gradient / density)
-        self.promol_score = self.promol_grad / self.promol_dens.reshape(-1, 1)
+#         # Compute score (gradient / density)
+#         self.promol_score = self.promol_grad / self.promol_dens.reshape(-1, 1)
         
-        # Store last sampled indices for efficient lookup
-        self._last_indices = None
+#         # Store last sampled indices for efficient lookup
+#         self._last_indices = None
     
-    def sample(self, seed, sample_shape):
-        """Sample positions from the radial density."""
-        if isinstance(sample_shape, int):
-            n_samples = sample_shape
-        else:
-            n_samples = sample_shape[0] if len(sample_shape) > 0 else 1
+#     def sample(self, seed, sample_shape):
+#         """Sample positions from the radial density."""
+#         if isinstance(sample_shape, int):
+#             n_samples = sample_shape
+#         else:
+#             n_samples = sample_shape[0] if len(sample_shape) > 0 else 1
         
-        # Sample indices according to density - shape (n_samples, 3)
-        sampled_indices = jax.random.choice(
-            seed, 
-            a=len(self.rad_grid),
-            shape=(n_samples, 3),
-            replace=True,
-            p=self.p
-        )
+#         # Sample indices according to density - shape (n_samples, 3)
+#         sampled_indices = jax.random.choice(
+#             seed, 
+#             a=len(self.rad_grid),
+#             shape=(n_samples, 3),
+#             replace=True,
+#             p=self.p
+#         )
         
-        # Store indices for later lookup
-        self._last_indices = sampled_indices
+#         # Store indices for later lookup
+#         self._last_indices = sampled_indices
         
-        # Map indices to radial values - shape (n_samples, 3)
-        samples = self.rad_grid[sampled_indices]
-        return samples
+#         # Map indices to radial values - shape (n_samples, 3)
+#         samples = self.rad_grid[sampled_indices]
+#         return samples
     
-    def log_prob(self, value):
-        """Compute log probability of samples."""
-        # Find which grid index each value corresponds to
-        # Since samples come from rad_grid, find closest match
-        indices = jnp.argmin(jnp.abs(value[:, 2:3] - self.rad_grid[None, :]), axis=1)
+#     def log_prob(self, value):
+#         """Compute log probability of samples."""
+#         # Find which grid index each value corresponds to
+#         # Since samples come from rad_grid, find closest match
+#         indices = jnp.argmin(jnp.abs(value[:, 2:3] - self.rad_grid[None, :]), axis=1)
         
-        # Get densities for those indices
-        densities = self.p[indices]
-        log_probs = jnp.log(densities)
+#         # Get densities for those indices
+#         densities = self.p[indices]
+#         log_probs = jnp.log(densities)
         
-        return log_probs[:, None]  # Shape (batch_size, 1)
+#         return log_probs[:, None]  # Shape (batch_size, 1)
     
-    def score(self, values):
-        """Compute score (gradient of log probability)."""
-        # Find which grid index each value corresponds to
-        indices = jnp.argmin(jnp.abs(values[:, 2:3] - self.rad_grid[None, :]), axis=1)
+#     def score(self, values):
+#         """Compute score (gradient of log probability)."""
+#         # Find which grid index each value corresponds to
+#         indices = jnp.argmin(jnp.abs(values[:, 2:3] - self.rad_grid[None, :]), axis=1)
         
-        # Get pre-computed scores for those indices
-        scores = self.promol_score[indices]
+#         # Get pre-computed scores for those indices
+#         scores = self.promol_score[indices]
         
-        return scores  # Shape (batch_size, 3)
+#         return scores  # Shape (batch_size, 3)
     
 
 # class DFTGridDistribution:
@@ -283,7 +283,7 @@ class AtomDBDistribution:
         gradient = self.db_prior.gradient(values)
         
         score = gradient / jnp.maximum(density.reshape(-1, 1), 1e-30)
-        # score = jnp.nan_to_num(score, nan=0.0, posinf=0.0, neginf=0.0)
+        score = jnp.nan_to_num(score, nan=0.0, posinf=0.0, neginf=0.0)
   
         return score
 
@@ -338,13 +338,17 @@ class SIRDistribution:
         log_density_target = self.target_distribution.log_prob(proposal_samples)  # Shape: (n_proposal_samples, 1)
         
         # Flatten to 1D if needed
-        density_base = density_base.squeeze()  # Shape: (n_proposal_samples,)
-        
-        log_density_target = log_density_target.squeeze()  # Shape: (n_proposal_samples,)
-        density_target = jnp.exp(log_density_target)  # Shape: (n_proposal_samples,)
+        # print((density_base.ravel()).shape)
+        # print((density_target.ravel()).shape)
+        # assert 0 
+        density_base = density_base.ravel()  # Shape: (n_proposal_samples,)
+        # density_target = density_target.squeeze() 
+
+        # log_density_target = log_density_target.squeeze()  # Shape: (n_proposal_samples,)
+        # density_target = jnp.exp(log_density_target)  # Shape: (n_proposal_samples,)
         
         # Importance weights: w = p_target / p_base
-        importance_weights = density_target / (density_base)
+        importance_weights = density_target / density_base
         importance_weights = jnp.nan_to_num(importance_weights, nan=0.0, posinf=0.0, neginf=0.0)
         importance_weights = jnp.maximum(importance_weights, 0.0)
         importance_weights = importance_weights / jnp.sum(importance_weights)
