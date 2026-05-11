@@ -27,3 +27,8 @@ from flow.equiv_flows import (
     Radial_MLP,
     CNF
 )
+from flow.discrete_radial_flow import (
+    _ScalarMLP,
+    RadialLayer,
+    DiscreteRadialFlow
+)

@@ -92,8 +92,8 @@ class CNF(eqx.Module):
             dx_and_dlopz, _f_vjp = jax.vjp(
                 lambda state: _f_ode(self,state, t), state)
             dx, dlopz = dx_and_dlopz
-            (vjp_all,) = _f_vjp((score, 1.))
-            score_vjp, grad_div = vjp_all[:-1], vjp_all[-1] 
+            (vjp_all,) = _f_vjp((score, -1.))
+            score_vjp, grad_div = vjp_all[:-1], vjp_all[-1]
             dscore = -score_vjp + grad_div
             return jnp.append(jnp.append(dx, dlopz), dscore)
         return f_ode(self, states, t)

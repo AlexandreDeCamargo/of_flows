@@ -366,7 +366,7 @@ def one_hot_encode(z: Array) -> Array:
     return z_one_hot 
 
 # def coordinates(mol_name: str, BOHR: float = 1.8897259886 ) -> Array:
-def coordinates(mol_name: str, bond_length: float = 1.4008538753, BOHR: float = 1.8897259886) -> Array:
+def coordinates(mol_name: str, bond_length: float = 0.74144, BOHR: float = 1.8897259886) -> Array:
     
     if mol_name == 'H2':
         Ne = 2
@@ -400,8 +400,8 @@ def coordinates(mol_name: str, bond_length: float = 1.4008538753, BOHR: float = 
     elif mol_name == 'CO':
         Ne = 14
         atoms = ['C', 'O']
-        coords = jnp.array([[0., 0.,2.6141356101],
-                        [0., 0., -2.6141356101]]) 
+        coords = jnp.array([[0., 0., 0.5641],
+                        [0., 0., -0.5641]]) * BOHR
         z = jnp.array([6., 8.])
         return Ne,atoms,z,coords
     elif mol_name == 'Li':

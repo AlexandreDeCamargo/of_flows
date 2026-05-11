@@ -9,17 +9,18 @@ import time
 from typing import Optional
 
 from flow.equiv_flows import CNF
+from flow.discrete_radial_flow import DiscreteRadialFlow
 from of_flows.utils import one_hot_encode, coordinates, batch_generator, get_solver, get_scheduler
 from promolecular.promolecular_dist import AtomDBDistribution,SIRDistribution,ProMolecularDensity
-from train.utils import step 
-from train.loss import create_loss_function, F_values
+from train.utils import step
+from train.loss import create_loss_function, create_loss_function_drf, F_values
 from atomdb import make_promolecule
 from config._config import Config
 
 jax.config.update("jax_enable_x64", True)
 
 
-def setup_molecule(mol_name: str, bond_length: float = 1.4008538753):
+def setup_molecule(mol_name: str, bond_length: float = 0.74144):
     """Setup molecular system."""
     Ne, atoms, z, coords = coordinates(mol_name, bond_length)
     mol = {'coords': coords, 'z': z}
@@ -61,11 +62,12 @@ def log_metrics(itr: int, loss_epoch: float, losses: F_values,
     """Create metrics dictionaries for logging."""
     r_instant = {
         'epoch': itr,
-        'E': loss_epoch,
+        'E': loss_epoch - losses.cc,
         'T': losses.kin,
         'V': losses.vnuc,
         'H': losses.hart,
         'XC': losses.xc,
+        'CC': losses.cc,
         't': elapsed_time
     }
     
@@ -84,8 +86,9 @@ def log_metrics(itr: int, loss_epoch: float, losses: F_values,
 
 
 def training(mol_name: str,
-            bond_length: float = 1.4008538753, 
+            bond_length: float = 0.74144,
             tw_kin: str = 'tf_w',
+            lam: float = 1.0,
             n_pot: str = 'np',
             h_pot: str = 'coulomb',
             x_pot: str = 'lda',
@@ -167,7 +170,7 @@ def training(mol_name: str,
     prior_dist = ProMolecularDensity(z.ravel(), coords)
 
     if prior_type == 'db_sir':
-        db_prior = make_promolecule(atnums=z, coords=coords, dataset="hci")
+        db_prior = make_promolecule(atnums=z, coords=coords, dataset="slater")
         db_target_dist = AtomDBDistribution(
             db_prior=db_prior,
             z=z,
@@ -186,7 +189,8 @@ def training(mol_name: str,
     
     grad_loss_fn = create_loss_function(
         kinetic_name=tw_kin,
-        exchange_name=x_pot, 
+        lam=lam,
+        exchange_name=x_pot,
         correlation_name=c_pot,
         hartree_name=h_pot,
         external_name=n_pot,
@@ -227,7 +231,135 @@ def training(mol_name: str,
         df_ema.to_csv(f"{Config.results_dir}/training_metrics_ema.csv", index=False)
         
         # Save checkpoint
-        if itr % checkpoint_freq == 0:
+        if itr % checkpoint_freq == 0 or itr == epochs:
             eqx.tree_serialise_leaves(f"{checkpoint_dir}/checkpoint_{itr}.eqx", flow_model)
-    
+
+    return flow_model, df, df_ema
+
+
+def training_drf(mol_name: str,
+                 bond_length: float = 0.74144,
+                 tw_kin: str = 'tf_w',
+                 lam: float = 1.0,
+                 n_pot: str = 'np',
+                 h_pot: str = 'coulomb',
+                 x_pot: str = 'lda',
+                 c_pot: str = 'none',
+                 cc_pot: str = 'none',
+                 batch_size: int = 256,
+                 hidden_layer: int = 64,
+                 n_layers: int = 10,
+                 epochs: int = 100,
+                 lr: float = 1e-4,
+                 scheduler_type: str = 'ones',
+                 prior_type: str = 'promolecular',
+                 checkpoint_dir: str = './checkpoints',
+                 checkpoint_freq: int = 50):
+    """
+    Training loop for DiscreteRadialFlow (DRF) models.
+
+    Parameters
+    ----------
+    mol_name : str
+    bond_length : float
+    tw_kin, n_pot, h_pot, x_pot, c_pot, cc_pot : str
+        Functional names (same as training()).
+    batch_size : int
+    hidden_layer : int
+        MLP hidden dimension per layer.
+    n_layers : int
+        Number of radial layers K.
+    epochs : int
+    lr : float
+    scheduler_type : str
+    prior_type : str  – 'promolecular' or 'db_sir'
+    checkpoint_dir : str
+    checkpoint_freq : int
+
+    Returns
+    -------
+    flow_model : DiscreteRadialFlow
+    df : pd.DataFrame
+    df_ema : pd.DataFrame
+    """
+    Ne, atoms, z, coords, mol = setup_molecule(mol_name, bond_length)
+
+    key = jrnd.PRNGKey(0)
+    _, key = jrnd.split(key)
+
+    z_one_hot = one_hot_encode(z)
+
+    # Build DRF model
+    flow_model = DiscreteRadialFlow(
+        n_layers=n_layers,
+        dim=hidden_layer,
+        mu=coords,
+        z_one_hot=z_one_hot,
+        key=key
+    )
+
+    optimizer, optimizer_state = setup_optimizer(flow_model, epochs, lr, scheduler_type)
+    energies_ema, energies_state = setup_ema()
+
+    prior_dist = ProMolecularDensity(z.ravel(), coords)
+
+    if prior_type == 'db_sir':
+        db_prior = make_promolecule(atnums=z, coords=coords, dataset="slater")
+        db_target_dist = AtomDBDistribution(db_prior=db_prior, z=z, coords=coords, Ne=Ne)
+        sampling_dist = SIRDistribution(
+            base_distribution=prior_dist,
+            target_distribution=db_target_dist,
+            oversampling_factor=500
+        )
+    else:
+        sampling_dist = prior_dist
+
+    gen_batches = batch_generator(key, batch_size, sampling_dist)
+
+    # DRF loss does not use a solver — Ne and mol are passed directly
+    grad_loss_fn = create_loss_function_drf(
+        kinetic_name=tw_kin,
+        lam=lam,
+        exchange_name=x_pot,
+        correlation_name=c_pot,
+        hartree_name=h_pot,
+        external_name=n_pot,
+        core_correction_name=cc_pot
+    )
+
+    # Wrapper so that train.utils.step can pass (Ne, mol) as *loss_args
+    def _loss_with_args(model, batch, Ne, mol):
+        return grad_loss_fn(model, batch, Ne, mol)
+
+    df = pd.DataFrame()
+    df_ema = pd.DataFrame()
+
+    for itr in range(epochs + 1):
+        start_time = time.time()
+
+        batch = next(gen_batches)
+
+        loss, flow_model, optimizer_state = step(
+            flow_model, batch, optimizer, optimizer_state,
+            _loss_with_args, Ne, mol
+        )
+
+        elapsed_time = time.time() - start_time
+        loss_epoch, losses = loss
+
+        energies_i_ema, energies_state = energies_ema.update(losses, energies_state)
+
+        r_instant, r_ema = log_metrics(itr, loss_epoch, losses, energies_i_ema, elapsed_time)
+
+        df     = pd.concat([df,     pd.DataFrame([r_instant])], ignore_index=True)
+        df_ema = pd.concat([df_ema, pd.DataFrame([r_ema])],    ignore_index=True)
+
+        print(f"Epoch {itr}: {r_ema}")
+
+        df.to_csv(f"{Config.results_dir}/training_metrics_drf.csv",     index=False)
+        df_ema.to_csv(f"{Config.results_dir}/training_metrics_drf_ema.csv", index=False)
+
+        if itr % checkpoint_freq == 0 or itr == epochs:
+            eqx.tree_serialise_leaves(f"{checkpoint_dir}/drf_checkpoint_{itr}.eqx", flow_model)
+
     return flow_model, df, df_ema

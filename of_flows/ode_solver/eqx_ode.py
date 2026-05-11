@@ -1,5 +1,5 @@
 from diffrax import diffeqsolve, ODETerm, SaveAt, PIDController
-import jax 
+import jax
 import jax.numpy as jnp
 import functools
 
@@ -79,5 +79,51 @@ def rev_ode(flow_model, z_and_logpz, solver):
     # return z_t0, logp_diff_t0
 
 
+def forward_drf(model, z_and_logpz_score):
+    """
+    Discrete radial flow forward pass — drop-in replacement for fwd_ode.
 
+    Propagates positions, log-probability, and score through K sequential
+    radial layers using the exact change-of-variables formula:
+
+        log ρ_{k+1}(x_{k+1}) = log ρ_k(x_k) - log|det J_k(x_k)|
+
+        score_{k+1} = J_k^{-T} (score_k - ∇_{x_k} log|det J_k(x_k)|)
+
+    The correction term ∇ log|det J_k| is computed via second-order AD.
+
+    Parameters
+    ----------
+    model : DiscreteRadialFlow
+    z_and_logpz_score : (batch, 7) array  —  [x(3), log_p(1), score(3)]
+
+    Returns
+    -------
+    x     : (batch, 3)
+    log_p : (batch, 1)
+    score : (batch, 3)
+    """
+    def _single(state):
+        x     = state[:3]
+        log_p = state[3]
+        score = state[4:]
+
+        for layer in model.layers:
+            J = jax.jacrev(layer)(x)  # (3, 3)
+
+            # ∇_{x} log|det J(x)|  —  needed for exact score transport
+            def _log_det(xi):
+                return jnp.log(jnp.abs(jnp.linalg.det(jax.jacrev(layer)(xi))))
+            grad_logdet = jax.grad(_log_det)(x)  # (3,)
+
+            # score_{k+1} = J^{-T} (score_k - grad_logdet)
+            score = jnp.linalg.solve(J.T, score - grad_logdet)
+
+            log_p = log_p - jnp.log(jnp.abs(jnp.linalg.det(J)))
+            x     = layer(x)
+
+        return x, log_p.reshape(1,), score
+
+    xs, log_ps, scores = jax.vmap(_single)(z_and_logpz_score)
+    return xs, log_ps, scores
 
