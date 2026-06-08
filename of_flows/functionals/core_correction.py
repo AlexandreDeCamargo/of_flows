@@ -61,8 +61,8 @@ class KatoCondition(eqx.Module):
         
         def _wi(x: Array, molecule: Array) -> Array:
             r = jnp.sqrt(
-                jnp.sum((x - molecule['coords']) * (x - molecule['coords']), axis=1)
-            ) 
+                jnp.sum((x - molecule['coords']) ** 2, axis=1) + self.eps ** 2
+            )
             z = molecule['z']
             w_i = jnp.exp(-self.a * z * r)
             return w_i

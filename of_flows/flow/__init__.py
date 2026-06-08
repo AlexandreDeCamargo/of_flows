@@ -30,5 +30,7 @@ from flow.equiv_flows import (
 from flow.discrete_radial_flow import (
     _ScalarMLP,
     RadialLayer,
-    DiscreteRadialFlow
+    DiscreteRadialFlow,
+    RezendeRadialLayer,
+    RezendeRadialFlow,
 )

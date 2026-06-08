@@ -6,7 +6,7 @@ from functionals.hartree import CoulombPotential
 from functionals.external import NuclearPotential
 from functionals.core_correction import KatoCondition, HutcheonCuspCondition
 from functionals.functional import CompositeFunctional
-from ode_solver.eqx_ode import fwd_ode, forward_drf
+from ode_solver.eqx_ode import fwd_ode, forward_drf, forward_rdm
 import jax
 class F_values(NamedTuple):
     """Container for energy components."""
@@ -155,6 +155,56 @@ def create_loss_function(
         return energy, f_values
 
     return grad_loss
+
+
+def create_loss_function_rdm(
+    kinetic_name: str = 'tf_w',
+    lam: float = 1.0,
+    exchange_name: str = 'lda',
+    correlation_name: str = 'none',
+    hartree_name: str = 'coulomb',
+    external_name: str = 'np',
+    core_correction_name: str = 'none'
+):
+    """Loss function factory for RezendeRadialFlow (uses forward_rdm)."""
+    t_functional = _build_kinetic(kinetic_name, lam)
+    x_functional = FUNCTIONAL_CLASSES[exchange_name]()
+    h_functional = FUNCTIONAL_CLASSES[hartree_name]()
+    n_functional = FUNCTIONAL_CLASSES[external_name]()
+    c_functional  = FUNCTIONAL_CLASSES[correlation_name]()  if correlation_name  != 'none' else None
+    cc_functional = FUNCTIONAL_CLASSES[core_correction_name]() if core_correction_name != 'none' else None
+
+    def grad_loss_rdm(model, z_and_logpz, Ne, mol):
+        x, log_px, _score = forward_rdm(model, z_and_logpz)
+
+        bs = int(x.shape[0] / 2)
+        den_all, score_all = jnp.exp(log_px), _score
+        score, scorep = score_all[:bs], score_all[bs:]
+        den,   denp   = den_all[:bs],   den_all[bs:]
+        x,     xp     = x[:bs],          x[bs:]
+
+        t_e  = t_functional(den, score, Ne)
+        n_e  = n_functional(x, Ne, mol)
+        h_e  = h_functional(x, xp, Ne)
+        x_e  = x_functional(den, score, Ne)
+        c_e  = c_functional(den, score, Ne)  if c_functional  is not None else 0.0
+        cc_e = cc_functional(x, den, score, Ne, mol) if cc_functional is not None else 0.0
+
+        xc_e   = x_e + c_e
+        e      = t_e + n_e + h_e + xc_e + cc_e
+        energy = jnp.mean(e)
+
+        f_values = F_values(
+            energy=energy,
+            kin=jnp.mean(t_e),
+            vnuc=jnp.mean(n_e),
+            hart=jnp.mean(h_e),
+            xc=jnp.mean(xc_e),
+            cc=jnp.mean(cc_e) if isinstance(cc_e, jnp.ndarray) else cc_e
+        )
+        return energy, f_values
+
+    return grad_loss_rdm
 
 
 def create_loss_function_drf(

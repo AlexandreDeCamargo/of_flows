@@ -366,25 +366,16 @@ def one_hot_encode(z: Array) -> Array:
     return z_one_hot 
 
 # def coordinates(mol_name: str, BOHR: float = 1.8897259886 ) -> Array:
-def coordinates(mol_name: str, bond_length: float = 0.74144, BOHR: float = 1.8897259886) -> Array:
-    
+def coordinates(mol_name: str, bond_length: float = 1.4008538753, BOHR: float = 1.8897259886) -> Array:
+
     if mol_name == 'H2':
         Ne = 2
         atoms = ['H', 'H']
-        coords = jnp.array([[0., 0., -bond_length/2], 
-                          [0., 0., bond_length/2]])*BOHR
+        coords = jnp.array([[0., 0., -bond_length/2],
+                          [0., 0., bond_length/2]])   # bond_length already in Bohr
         z = jnp.array([1, 1])
         return Ne, atoms, z, coords
     
-    # if mol_name == 'H2':
-    #     Ne = 2
-    #     atoms = ['H', 'H']
-    #     #coords = jnp.array([[0., 0., -1.058354498], 
-    #     #                  [0., 0., 1.058354498]])*BOHR
-    #     coords = jnp.array([[0., 0., -1.4008538753/2], 
-    #                       [0., 0., 1.4008538753/2]])*BOHR
-    #     z = jnp.array([1, 1])
-    #     return Ne,atoms,z,coords
     elif mol_name == 'H':
         Ne = 1
         atoms = ['H']
@@ -396,6 +387,13 @@ def coordinates(mol_name: str, bond_length: float = 0.74144, BOHR: float = 1.889
         atoms = ['He']
         coords = jnp.array([[0., 0., 0.]]) * BOHR
         z = jnp.array([2.])
+        return Ne,atoms,z,coords
+    elif mol_name == 'N2':
+        Ne = 14
+        atoms = ['N', 'N']
+        coords = jnp.array([[0., 0., -bond_length/2],
+                        [0., 0., bond_length/2]]) 
+        z = jnp.array([7., 7.])
         return Ne,atoms,z,coords
     elif mol_name == 'CO':
         Ne = 14

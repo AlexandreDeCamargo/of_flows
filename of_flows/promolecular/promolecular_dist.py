@@ -44,9 +44,12 @@ class ProMolecularDensity(distrax.Distribution):
         self.units = units
 
         if scale_diag is None:
+            #sigma = 0.5 / jnp.asarray(z, dtype=loc.dtype).ravel()       # shape (n_atoms,)
+            #scale_diag = sigma[:, None] * jnp.ones(self.dim, dtype=loc.dtype)
+            #self.scale_diag = lax.expand_dims(scale_diag, dimensions=   (1,))
             self.scale_diag = jnp.ones_like(self.loc)
         else:
-            self.scale_diag = lax.expand_dims(scale_diag, dimensions=(1))
+            self.scale_diag = lax.expand_dims(scale_diag, dimensions=(1,))
 
         if self.units.lower() == 'aa' or self.units.lower() == 'angstrom':
             self.loc = self.loc*AAtoBohr
@@ -256,35 +259,112 @@ class ProMolecularDensity(distrax.Distribution):
 #         return self.promol_score[indices]
     
 class AtomDBDistribution:
-    """Distribution based on atomdb density (no grid required)."""
-    
-    def __init__(self, db_prior, z, coords,Ne):
+    """Distribution based on atomdb density, with **direct sampling** via
+    per-atom inverse-CDF tables built at init time.
+
+    No SIR / importance reweighting required: samples come exactly from the
+    promolecular sum of atomic Slater densities.
+    """
+
+    def __init__(self, db_prior, z, coords, Ne,
+                 n_radial: int = 4096, r_max: float = 20.0):
         self.db_prior = db_prior
-        self.z = z
-        self.coords = coords
-        self.Ne = Ne
-    
+        self.z      = jnp.asarray(z).ravel()
+        self.coords = jnp.asarray(coords, dtype=jnp.float64)
+        self.Ne     = Ne
+        self.n_atoms = int(self.coords.shape[0])
+        self._build_per_atom_invcdf(n_radial, r_max)
+
+    # ── Inverse-CDF table construction (numpy/scipy, one-shot at init) ───────
+    def _build_per_atom_invcdf(self, n_radial: int, r_max: float):
+        import numpy as np
+        from scipy.integrate import cumulative_trapezoid
+
+        r_grid = np.linspace(1e-6, r_max, n_radial)        # avoid r=0 singularity
+        u_grid = np.linspace(0.0, 1.0, n_radial)
+
+        inv_cdf_tables = []
+        atom_weights   = []
+        for atom_species in self.db_prior.atoms:
+            dens_spline = atom_species.dens_func()         # DensitySpline
+            rho = np.asarray(dens_spline(r_grid))
+            rho = np.maximum(rho, 0.0)
+
+            integrand = 4.0 * np.pi * r_grid**2 * rho      # radial probability mass
+            cdf = np.concatenate([[0.0], cumulative_trapezoid(integrand, r_grid)])
+            cdf = cdf[:n_radial]
+
+            n_electrons_atom = float(cdf[-1])
+            atom_weights.append(n_electrons_atom)
+            if n_electrons_atom <= 0.0:
+                # degenerate (shouldn't happen for real atoms); make uniform
+                r_at_u = np.copy(r_grid)
+            else:
+                cdf_norm = cdf / n_electrons_atom
+                # invert: for each u in u_grid, find r such that F(r) = u
+                r_at_u = np.interp(u_grid, cdf_norm, r_grid)
+            inv_cdf_tables.append(r_at_u)
+
+        self.inv_cdf_tables = jnp.asarray(np.stack(inv_cdf_tables),
+                                          dtype=jnp.float64)        # (n_atoms, n_radial)
+        self.u_grid         = jnp.asarray(u_grid,  dtype=jnp.float64)  # (n_radial,)
+        self.atom_weights   = jnp.asarray(atom_weights, dtype=jnp.float64)
+        self.atom_probs     = self.atom_weights / self.atom_weights.sum()
+
+    # ── Direct sampling ──────────────────────────────────────────────────────
+    def _sample_n(self, key, n: int):
+        k_atom, k_r, k_dir = jrnd.split(key, 3)
+
+        # 1. Pick an atom for each sample, weighted by per-atom electron count
+        atom_idx = jrnd.categorical(k_atom, jnp.log(self.atom_probs), shape=(n,))
+
+        # 2. Uniform u for inverse-CDF lookup
+        u = jrnd.uniform(k_r, shape=(n,))
+
+        # 3. Invert per-sample using the chosen atom's table
+        def _invert_one(idx, u_val):
+            return jnp.interp(u_val, self.u_grid, self.inv_cdf_tables[idx])
+        r = jax.vmap(_invert_one)(atom_idx, u)             # (n,)
+
+        # 4. Isotropic direction on the sphere
+        d = jrnd.normal(k_dir, shape=(n, 3))
+        d = d / jnp.linalg.norm(d, axis=1, keepdims=True)
+
+        # 5. Position = atom_center + r * direction
+        centers = self.coords[atom_idx]                    # (n, 3)
+        return centers + r[:, None] * d
+
+    def sample(self, seed, sample_shape):
+        if isinstance(sample_shape, int):
+            n = sample_shape
+        elif len(sample_shape) == 0:
+            n = 1
+        else:
+            n = int(sample_shape[0])
+        return self._sample_n(seed, n)
+
+    # ── log_prob / score ─────────────────────────────────────────────────────
     def log_prob(self, value):
-        """Compute log probability directly from atomdb density."""
         density = self.db_prior.density(value)
         normalized_density = density / self.Ne
-        log_probs = jnp.log(normalized_density)
+        # Clip floor to avoid log(0) -> -inf for samples that landed beyond
+        # the AtomDB spline's support (rare; happens for u→1 tails).
+        log_probs = jnp.log(jnp.maximum(normalized_density, 1e-30))
+        #log_probs = jnp.log(normalized_density)
         return log_probs[:, None]
-    
+
     def prob(self, value):
-        """Compute log probability directly from atomdb density."""
         density = self.db_prior.density(value)
         normalized_density = density / self.Ne
         return normalized_density
-    
+
     def score(self, values):
-        """Compute score = gradient / density."""
-        density = self.db_prior.density(values) / self.Ne
+        # score = ∇log p(x) = ∇log(ρ_total/Ne) = ∇ρ_total/ρ_total
+        # (the constant 1/Ne factor cancels in the gradient — do NOT divide ρ by Ne here)
+        density  = self.db_prior.density(values)
         gradient = self.db_prior.gradient(values)
-        
         score = gradient / jnp.maximum(density.reshape(-1, 1), 1e-30)
         score = jnp.nan_to_num(score, nan=0.0, posinf=0.0, neginf=0.0)
-  
         return score
 
 class SIRDistribution:

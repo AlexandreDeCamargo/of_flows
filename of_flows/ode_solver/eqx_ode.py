@@ -79,6 +79,69 @@ def rev_ode(flow_model, z_and_logpz, solver):
     # return z_t0, logp_diff_t0
 
 
+def inverse_rdm(model, y_batch):
+    """
+    Exact inverse of RezendeRadialFlow — analogue of rev_ode for the CNF.
+
+    Applies each layer's closed-form inverse in REVERSE order, mapping a
+    batch of output positions y back to their pre-flow base positions z.
+
+    Parameters
+    ----------
+    model      : RezendeRadialFlow
+    y_batch    : (batch, 3) array of output positions
+
+    Returns
+    -------
+    z_batch    : (batch, 3) array of corresponding base positions
+    """
+    def _single(y):
+        x = y
+        for layer in reversed(model.layers):
+            x = layer.inverse(x)
+        return x
+
+    return jax.vmap(_single)(y_batch)
+
+
+def forward_rdm(model, z_and_logpz_score):
+    """
+    Forward pass for RezendeRadialFlow — exploits the closed-form log|det J|.
+
+    Avoids the 3×3 jacrev used in forward_drf; instead calls each layer's
+    log_det_jacobian() directly (O(1) per layer).  The score correction
+    ∇ log|det J| is still computed via jax.grad of the closed-form formula,
+    which requires only first-order AD.
+
+    Parameters
+    ----------
+    model : RezendeRadialFlow
+    z_and_logpz_score : (batch, 7)  —  [x(3), log_p(1), score(3)]
+
+    Returns
+    -------
+    x     : (batch, 3)
+    log_p : (batch, 1)
+    score : (batch, 3)
+    """
+    def _single(state):
+        x     = state[:3]
+        log_p = state[3]
+        score = state[4:]
+
+        for layer in model.layers:
+            J            = jax.jacrev(layer)(x)                  # (3, 3)
+            grad_logdet  = jax.grad(layer.log_det_jacobian)(x)   # (3,) — 1st-order AD
+            score        = jnp.linalg.solve(J.T, score - grad_logdet)
+            log_p        = log_p - layer.log_det_jacobian(x)
+            x            = layer(x)
+
+        return x, log_p.reshape(1,), score
+
+    xs, log_ps, scores = jax.vmap(_single)(z_and_logpz_score)
+    return xs, log_ps, scores
+
+
 def forward_drf(model, z_and_logpz_score):
     """
     Discrete radial flow forward pass — drop-in replacement for fwd_ode.

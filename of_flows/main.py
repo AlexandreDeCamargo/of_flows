@@ -2,7 +2,7 @@ import argparse
 import json
 from fractions import Fraction
 from pathlib import Path
-from train.loop import training, training_drf
+from train.loop import training, training_drf, training_rdm
 from config._config import Config
 
 
@@ -28,6 +28,8 @@ def _method_tag(args) -> str:
 
     if args.model == 'drf':
         tag = f"{kin_tag}_{args.cc}_{args.x}_{args.c}_drf_L{args.n_layers}_{args.prior}"
+    elif args.model == 'rdm':
+        tag = f"{kin_tag}_{args.cc}_{args.x}_{args.c}_rdm_L{args.n_layers}_{args.prior}"
     else:
         tag = f"{kin_tag}_{args.cc}_{args.x}_{args.c}_{args.solver}_{args.prior}"
     if args.sched.lower() not in ['c', 'const']:
@@ -73,7 +75,7 @@ def save_job_params(results_dir, args):
         'core_correction': args.cc,
         'scheduler': args.sched,
         'solver': args.solver if args.model == 'cnf' else 'n/a',
-        'n_layers': args.n_layers if args.model == 'drf' else 'n/a',
+        'n_layers': args.n_layers if args.model in ('drf', 'rdm') else 'n/a',
         'prior': args.prior,
     }
     
@@ -86,10 +88,10 @@ def save_job_params(results_dir, args):
 def main():
     parser = argparse.ArgumentParser()
     # Model parameters
-    parser.add_argument("--mol_name", type=str, default='Li',
+    parser.add_argument("--mol_name", type=str, default='H',
                         help="Molecule name")
-    parser.add_argument("--bond_length", type=float, default=0.74144,
-                        help="Bond length for the molecule (Angstroms)")
+    parser.add_argument("--bond_length", type=float, default=4.4,
+                        help="Bond length for the molecule (Bohr)")
     parser.add_argument("--epochs", type=int, default=500, 
                         help="Number of training epochs")
     parser.add_argument("--bs", type=int, default=512,
@@ -98,12 +100,12 @@ def main():
                         help="Hidden layer size")
     parser.add_argument("--lr", type=float, default=3e-4,
                         help="Learning rate")
-    parser.add_argument("--prior", type=str, default='promolecular',
+    parser.add_argument("--prior", type=str, default='db_sir',
                     choices=['promolecular', 'db_sir'],
                     help="Prior distribution type")
     parser.add_argument("--model", type=str, default='cnf',
-                    choices=['cnf', 'drf'],
-                    help="Model type: cnf (continuous normalizing flow) or drf (discrete radial flow)")
+                    choices=['cnf', 'drf', 'rdm'],
+                    help="Model type: cnf (continuous normalizing flow), drf (discrete radial flow), rdm (Rezende-Mohamed radial flow)")
     parser.add_argument("--n_layers", type=int, default=8,
                     help="Number of radial layers (DRF only)")
     
@@ -111,14 +113,14 @@ def main():
     parser.add_argument("--kin", type=str, default='tf_w',
                         choices=['tf', 'w', 'tf_w'],
                         help="Kinetic energy functional")
-    parser.add_argument("--lam", type=_lam, default=1.0,
+    parser.add_argument("--lam", type=_lam, default=1/5,
                         help="Weizsäcker prefactor λ in TF-λW: fraction (1/9, 1/5) or float (0.2, 2.0)")
     parser.add_argument("--nuc", type=str, default='np',
                         help="Nuclear potential functional")
     parser.add_argument("--hart", type=str, default='coulomb',
                         help="Hartree energy functional")
     parser.add_argument("--x", type=str, default='lda',
-                        choices=['lda', 'b88_x'],
+                        choices=['lda', 'b88_x', 'lda_b88_x'],
                         help="Exchange energy functional")
     parser.add_argument("--c", type=str, default='none',
                         choices=['vwn_c', 'pw92_c', 'none'],
@@ -177,6 +179,8 @@ def main():
 
     if args.model == 'drf':
         model, df, df_ema = training_drf(**shared, n_layers=args.n_layers)
+    elif args.model == 'rdm':
+        model, df, df_ema = training_rdm(**shared, n_layers=args.n_layers)
     else:
         model, df, df_ema = training(**shared, solver_type=args.solver)
 
