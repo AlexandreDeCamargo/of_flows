@@ -88,11 +88,11 @@ def save_job_params(results_dir, args):
 def main():
     parser = argparse.ArgumentParser()
     # Model parameters
-    parser.add_argument("--mol_name", type=str, default='H',
+    parser.add_argument("--mol_name", type=str, default='H2',
                         help="Molecule name")
-    parser.add_argument("--bond_length", type=float, default=4.4,
+    parser.add_argument("--bond_length", type=float, default=9.0,
                         help="Bond length for the molecule (Bohr)")
-    parser.add_argument("--epochs", type=int, default=500, 
+    parser.add_argument("--epochs", type=int, default=1000, 
                         help="Number of training epochs")
     parser.add_argument("--bs", type=int, default=512,
                         help="Batch size")
@@ -100,8 +100,8 @@ def main():
                         help="Hidden layer size")
     parser.add_argument("--lr", type=float, default=3e-4,
                         help="Learning rate")
-    parser.add_argument("--prior", type=str, default='db_sir',
-                    choices=['promolecular', 'db_sir'],
+    parser.add_argument("--prior", type=str, default='sto3g',
+                    choices=['promolecular', 'db_sir', 'sto3g'],
                     help="Prior distribution type")
     parser.add_argument("--model", type=str, default='cnf',
                     choices=['cnf', 'drf', 'rdm'],
@@ -119,10 +119,10 @@ def main():
                         help="Nuclear potential functional")
     parser.add_argument("--hart", type=str, default='coulomb',
                         help="Hartree energy functional")
-    parser.add_argument("--x", type=str, default='lda',
+    parser.add_argument("--x", type=str, default='lda_b88_x',
                         choices=['lda', 'b88_x', 'lda_b88_x'],
                         help="Exchange energy functional")
-    parser.add_argument("--c", type=str, default='none',
+    parser.add_argument("--c", type=str, default='vwn_c',
                         choices=['vwn_c', 'pw92_c', 'none'],
                         help="Correlation energy functional")
     parser.add_argument("--cc", type=str, default='none',

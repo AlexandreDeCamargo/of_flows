@@ -12,6 +12,7 @@ from flow.equiv_flows import CNF
 from flow.discrete_radial_flow import DiscreteRadialFlow, RezendeRadialFlow
 from of_flows.utils import one_hot_encode, coordinates, batch_generator, get_solver, get_scheduler
 from promolecular.promolecular_dist import AtomDBDistribution,SIRDistribution,ProMolecularDensity
+from promolecular.sto3g_prior import ProMolecularSTO3G
 from train.utils import step
 from train.loss import create_loss_function, create_loss_function_drf, create_loss_function_rdm, F_values
 from atomdb import make_promolecule
@@ -175,6 +176,8 @@ def training(mol_name: str,
         sampling_dist = AtomDBDistribution(
             db_prior=db_prior, z=z, coords=coords, Ne=Ne
         )
+    elif prior_type == 'sto3g':
+        sampling_dist = ProMolecularSTO3G(z.ravel(), coords)
     else:
         sampling_dist = prior_dist
 
@@ -302,6 +305,8 @@ def training_drf(mol_name: str,
         sampling_dist = AtomDBDistribution(
             db_prior=db_prior, z=z, coords=coords, Ne=Ne
         )
+    elif prior_type == 'sto3g':
+        sampling_dist = ProMolecularSTO3G(z.ravel(), coords)
     else:
         sampling_dist = prior_dist
 
@@ -393,6 +398,8 @@ def training_rdm(mol_name: str,
         sampling_dist = AtomDBDistribution(
             db_prior=db_prior, z=z, coords=coords, Ne=Ne
         )
+    elif prior_type == 'sto3g':
+        sampling_dist = ProMolecularSTO3G(z.ravel(), coords)
     else:
         sampling_dist = prior_dist
 

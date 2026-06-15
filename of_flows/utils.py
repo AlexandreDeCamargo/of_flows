@@ -376,16 +376,27 @@ def coordinates(mol_name: str, bond_length: float = 1.4008538753, BOHR: float = 
         z = jnp.array([1, 1])
         return Ne, atoms, z, coords
     
+    elif mol_name == 'H10':  
+        n_h = 10         
+        Ne = n_h
+        atoms = ['H'] * n_h
+        offsets = (jnp.arange(n_h) - (n_h - 1) / 2.) * bond_length   # spacing = bond_length
+        coords = jnp.stack([jnp.zeros(n_h),
+                            jnp.zeros(n_h),
+                            offsets], axis=1)
+        z = jnp.ones(n_h)
+        return Ne, atoms, z, coords 
+    
     elif mol_name == 'H':
         Ne = 1
         atoms = ['H']
-        coords = jnp.array([[0., 0., 0.]])*BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([1.])
         return Ne,atoms,z,coords
     elif mol_name == 'He':
         Ne = 2
         atoms = ['He']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([2.])
         return Ne,atoms,z,coords
     elif mol_name == 'N2':
@@ -395,66 +406,87 @@ def coordinates(mol_name: str, bond_length: float = 1.4008538753, BOHR: float = 
                         [0., 0., bond_length/2]]) 
         z = jnp.array([7., 7.])
         return Ne,atoms,z,coords
+    elif mol_name == 'O2':
+        Ne = 16
+        atoms = ['O', 'O']
+        coords = jnp.array([[0., 0., -bond_length/2],
+                          [0., 0., bond_length/2]])
+        z = jnp.array([8., 8.])
+        return Ne,atoms,z,coords
+    elif mol_name == 'F2':
+        Ne = 18
+        atoms = ['F', 'F']
+        coords = jnp.array([[0., 0., -bond_length/2],
+                          [0., 0., bond_length/2]])
+        z = jnp.array([9., 9.])
+        return Ne,atoms,z,coords
     elif mol_name == 'CO':
         Ne = 14
         atoms = ['C', 'O']
-        coords = jnp.array([[0., 0., 0.5641],
-                        [0., 0., -0.5641]]) * BOHR
+        coords = jnp.array([[0., 0., -bond_length/2],
+                          [0., 0., bond_length/2]])
         z = jnp.array([6., 8.])
+        return Ne,atoms,z,coords
+    elif mol_name == 'HF':
+        Ne = 10
+        atoms = ['H', 'F']
+        coords = jnp.array([[0., 0., -bond_length/2],
+                          [0., 0., bond_length/2]])
+        z = jnp.array([1., 9.])
         return Ne,atoms,z,coords
     elif mol_name == 'Li':
         Ne = 3
         atoms = ['Li']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([3.])
         return Ne,atoms,z,coords
     elif mol_name == 'Be':
         Ne = 4
         atoms = ['Be']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([4.])
         return Ne,atoms,z,coords
     elif mol_name == 'B':
         Ne = 5
         atoms = ['B']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([5.])
         return Ne,atoms,z,coords
     elif mol_name == 'C':
         Ne = 6
         atoms = ['C']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([6.])
         return Ne,atoms,z,coords
     elif mol_name == 'N':
         Ne = 7
         atoms = ['N']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([7.])
         return Ne,atoms,z,coords
     elif mol_name == 'O':
         Ne = 8
         atoms = ['O']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([8.])
         return Ne,atoms,z,coords
     elif mol_name == 'F':
         Ne = 9
         atoms = ['F']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([9.])
         return Ne,atoms,z,coords
     elif mol_name == 'Ne':
         Ne = 10
         atoms = ['Ne']
-        coords = jnp.array([[0., 0., 0.]]) * BOHR
+        coords = jnp.array([[0., 0., 0.]])
         z = jnp.array([10.]) 
         return Ne,atoms,z,coords
     elif mol_name == 'LiH':
-        Ne = 4 
+        Ne = 4
         atoms = ['Li', 'H']
-        coords = jnp.array([[0., 0., -1.5949/2], 
-                          [0., 0., 1.5949/2]])*BOHR 
+        coords = jnp.array([[0., 0., -bond_length/2],
+                          [0., 0., bond_length/2]])
         z = jnp.array([3, 1])
         return Ne,atoms,z,coords
     elif mol_name == 'H2O':
