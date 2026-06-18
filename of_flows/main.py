@@ -34,6 +34,10 @@ def _method_tag(args) -> str:
         tag = f"{kin_tag}_{args.cc}_{args.x}_{args.c}_{args.solver}_{args.prior}"
     if args.sched.lower() not in ['c', 'const']:
         tag += f"_sched_{args.sched.upper()}"
+    # Append the Hartree variant only when it's not the default, so existing
+    # 'coulomb' run directories keep their names.
+    if args.hart.lower() != 'coulomb':
+        tag += f"_hart_{args.hart.upper()}"
     return tag
 
 

@@ -2,7 +2,7 @@ import jax.numpy as jnp
 from typing import NamedTuple
 from functionals.kinetic import ThomasFermi, Weizsacker
 from functionals.exchange_correlation import LDA, B88Exchange, CorrelationVWN, CorrelationPW92
-from functionals.hartree import CoulombPotential
+from functionals.hartree import CoulombPotential, CoulombPotentialAllPairs
 from functionals.external import NuclearPotential
 from functionals.core_correction import KatoCondition, HutcheonCuspCondition
 from functionals.functional import CompositeFunctional
@@ -34,6 +34,7 @@ FUNCTIONAL_CLASSES = {
     
     # Hartree
     'coulomb': CoulombPotential,
+    'coulomb_allpairs': CoulombPotentialAllPairs,
     
     # External
     'np': NuclearPotential,
