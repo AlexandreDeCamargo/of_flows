@@ -117,7 +117,7 @@ class CorrelationVWN(eqx.Module):
         x0 = -0.10498
         
         den_clipped = jnp.where(den > self.clip_cte, den, 0.0)
-        log_den = jnp.log2(jnp.clip(den_clipped, a_min=self.clip_cte))
+        log_den = jnp.log2(jnp.clip(den_clipped, self.clip_cte))
         log_rs = jnp.log2((3 / (4 * jnp.pi)) ** (1 / 3)) - log_den / 3.0
         log_x = log_rs / 2
         rs = 2.**log_rs
@@ -177,7 +177,7 @@ class CorrelationPW92(eqx.Module):
         beta3 = 1.6382
         beta4 = 0.49294
 
-        log_den = jnp.log2(jnp.clip(den, a_min=self.clip_cte))
+        log_den = jnp.log2(jnp.clip(den, self.clip_cte))
         log_rs = jnp.log2((3 / (4 * jnp.pi)) ** (1 / 3)) - log_den / 3.0
         
         brs_1_2 = 2 ** (log_rs / 2 + jnp.log2(beta1))
@@ -226,14 +226,14 @@ class B88Exchange(eqx.Module):
         score: Float[Array, "batch dim"],
         Ne: Int[Scalar, ""],
     ) -> Float[Array, "batch"]:
-        den_clipped = jnp.clip(den, a_min=self.clip_cte)
+        den_clipped = jnp.clip(den, self.clip_cte)
         log_den = jnp.log2(den_clipped)
 
         score_sqr = jnp.einsum('ij,ij->i', score, score)
         den_sqr = den_clipped * den_clipped
         grad_den_norm_sq = lax.expand_dims(score_sqr, (1,)) * den_sqr
 
-        log_grad_den_norm = jnp.log2(jnp.clip(grad_den_norm_sq, a_min=self.clip_cte)) / 2
+        log_grad_den_norm = jnp.log2(jnp.clip(grad_den_norm_sq, self.clip_cte)) / 2
         log_x_sigma = log_grad_den_norm - 4 / 3.0 * log_den
         x_sigma = 2**log_x_sigma
 
