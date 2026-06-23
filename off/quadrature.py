@@ -12,12 +12,12 @@ from pyscf import gto, dft
 
 jax.config.update("jax_enable_x64", True)
 
-from flow.equiv_flows import CNF
-from ode_solver.eqx_ode import fwd_ode, rev_ode
-from utils import one_hot_encode, coordinates, get_solver
-from promolecular.promolecular_dist import ProMolecularDensity, AtomDBDistribution
-from train.loss import build_energy_functional
-from functionals.functional import FunctionalInputs
+from .flow.equiv_flows import CNF
+from .ode_solver.eqx_ode import fwd_ode, rev_ode
+from .utils import one_hot_encode, coordinates, get_solver
+from .promolecular.promolecular_dist import ProMolecularDensity, AtomDBDistribution
+from .train.loss import build_energy_functional
+from .functionals.functional import FunctionalInputs
 
 AA_TO_BOHR = 1.8897259886
 
@@ -236,7 +236,7 @@ def _print_energy(results_dir, en):
     print(f"  {'N_e':8s} = {en['Ne_integral']:.4f}   (∫ρ, should be Ne)")
 
 
-if __name__ == "__main__":
+def main():
     import argparse
     ap = argparse.ArgumentParser(
         description="Grid (quadrature) energy of a trained OFF run directory.")
@@ -256,3 +256,7 @@ if __name__ == "__main__":
             rd, grid_level=args.grid_level, basis=args.basis,
             chunk=args.bs, recompute=args.recompute)
         _print_energy(rd, en)
+
+
+if __name__ == "__main__":
+    main()

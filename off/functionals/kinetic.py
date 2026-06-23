@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 from jax import lax
-from functionals.functional import Functional, CompositeFunctional, unit_coefficient
+from .functional import Functional, CompositeFunctional, unit_coefficient
 
 C_TF = (3. / 10.) * (3. * jnp.pi ** 2) ** (2 / 3)
 

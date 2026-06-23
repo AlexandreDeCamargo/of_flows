@@ -22,6 +22,6 @@
 
 __version__ = "0.1.0"
 
-from promolecular.promolecular_dist import (
+from .promolecular_dist import (
     ProMolecularDensity
 )

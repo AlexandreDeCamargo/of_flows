@@ -22,7 +22,7 @@
 
 __version__ = "0.1.0"
 
-from train.loop import (
+from .loop import (
     setup_molecule,
     setup_model,
     setup_optimizer,
@@ -31,14 +31,14 @@ from train.loop import (
     training, 
 )
 
-from train.loss import (
+from .loss import (
     create_loss_function
 )
 
-from train.utils import (
+from .utils import (
     step
 )
 
-from config._config import (
+from ..config._config import (
     Config 
 )

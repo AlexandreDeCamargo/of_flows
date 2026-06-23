@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from jax import lax
 from distrax import MultivariateNormalDiag, Categorical
 from jaxtyping import Array, Float, Int, Scalar
-from dft_distrax import DFTDistribution
+from ..dft_distrax import DFTDistribution
 from pyscf import gto, dft
 import jax.random as jrnd
 

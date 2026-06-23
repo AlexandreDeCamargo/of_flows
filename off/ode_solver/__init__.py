@@ -22,11 +22,11 @@
 
 __version__ = "0.1.0"
 
-from ode_solver.eqx_ode import (
+from .eqx_ode import (
     fwd_ode,
     rev_ode,
 )
 
-from flow.equiv_flows import (
+from ..flow.equiv_flows import (
     CNF,
 )

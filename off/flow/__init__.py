@@ -22,7 +22,7 @@
 
 __version__ = "0.1.0"
 
-from flow.equiv_flows import (
+from .equiv_flows import (
     _Flow,
     Radial_MLP,
     CNF

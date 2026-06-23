@@ -22,6 +22,6 @@
 
 __version__ = "0.1.0"
 
-from dft_distrax.dft_distrax import (
+from .dft_distrax import (
     DFTDistribution
 )

@@ -21,3 +21,9 @@ AtomDB/
 plot_rev_pro_mol_copy.py
 plot_kato_&_none_ema.py 
 plot_rev_sampling.py 
+off/plot_binding_csv.py
+off/plot_pes_ema.py
+off/plot_pes_mpl.py
+off/quadrature_scan.py
+off/scan_pes.py
+off/test_fwd_rev.py

@@ -2,8 +2,8 @@ import argparse
 import json
 from fractions import Fraction
 from pathlib import Path
-from train.loop import training
-from config._config import Config
+from .train.loop import training
+from .config._config import Config
 
 
 def _lam(value: str) -> float:

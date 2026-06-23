@@ -1,12 +1,12 @@
 import jax.numpy as jnp
 from typing import NamedTuple
-from functionals.kinetic import tf, weizsacker, tf_weizsacker
-from functionals.exchange_correlation import lda, b88, vwn, pw92, lda_b88
-from functionals.hartree import CoulombPotential_, CoulombPotential
-from functionals.external import NuclearPotential
-from functionals.core_correction import KatoCondition, HutcheonCuspCondition
-from functionals.functional import FunctionalInputs, EnergyFunctional
-from ode_solver.eqx_ode import fwd_ode
+from ..functionals.kinetic import tf, weizsacker, tf_weizsacker
+from ..functionals.exchange_correlation import lda, b88, vwn, pw92, lda_b88
+from ..functionals.hartree import CoulombPotential_, CoulombPotential
+from ..functionals.external import NuclearPotential
+from ..functionals.core_correction import KatoCondition, HutcheonCuspCondition
+from ..functionals.functional import FunctionalInputs, EnergyFunctional
+from ..ode_solver.eqx_ode import fwd_ode
 import jax
 class F_values(NamedTuple):
     """Container for energy components."""

@@ -8,12 +8,12 @@ import pandas as pd
 import time
 from typing import Optional
 
-from flow.equiv_flows import CNF
-from utils import one_hot_encode, coordinates, batch_generator, get_solver, get_scheduler
-from promolecular.promolecular_dist import AtomDBDistribution,SIRDistribution,ProMolecularDensity
-from train.utils import step
-from train.loss import create_loss_function, F_values
-from config._config import Config
+from ..flow.equiv_flows import CNF
+from ..utils import one_hot_encode, coordinates, batch_generator, get_solver, get_scheduler
+from ..promolecular.promolecular_dist import AtomDBDistribution,SIRDistribution,ProMolecularDensity
+from .utils import step
+from .loss import create_loss_function, F_values
+from ..config._config import Config
 
 jax.config.update("jax_enable_x64", True)
 

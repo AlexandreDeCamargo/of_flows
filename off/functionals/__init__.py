@@ -22,14 +22,14 @@
 
 __version__ = "0.1.0"
 
-from functionals.functional import (
+from .functional import (
     Functional,
     CompositeFunctional,
     EnergyFunctional,
     FunctionalInputs,
 )
-from functionals.kinetic import tf, weizsacker, tf_weizsacker
-from functionals.exchange_correlation import lda, b88, vwn, pw92, lda_b88
-from functionals.external import NuclearPotential
-from functionals.hartree import CoulombPotential, CoulombPotential_
-from functionals.core_correction import KatoCondition, HutcheonCuspCondition
+from .kinetic import tf, weizsacker, tf_weizsacker
+from .exchange_correlation import lda, b88, vwn, pw92, lda_b88
+from .external import NuclearPotential
+from .hartree import CoulombPotential, CoulombPotential_
+from .core_correction import KatoCondition, HutcheonCuspCondition

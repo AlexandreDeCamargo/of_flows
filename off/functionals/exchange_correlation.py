@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 from jax import lax
-from functionals.functional import Functional, CompositeFunctional, unit_coefficient
+from .functional import Functional, CompositeFunctional, unit_coefficient
 
 
 def lda_density(inp):
