@@ -2,7 +2,7 @@ import argparse
 import json
 from fractions import Fraction
 from pathlib import Path
-from train.loop import training, training_drf, training_rdm
+from train.loop import training
 from config._config import Config
 
 
@@ -15,30 +15,20 @@ def _lam(value: str) -> float:
             f"Invalid λ value '{value}'. Use a fraction (1/9, 1/5) or float (0.111, 2.0)."
         )
 
-# Molecules with a single nucleus — bond length is not meaningful for these
 SINGLE_ATOMS = {'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne'}
-
 
 def _method_tag(args) -> str:
     """Encode functional/solver choices into a compact directory name."""
-    # Include lambda in the tag whenever the Weizsäcker term is present
     kin_tag = args.kin
     if args.kin in ('w', 'tf_w'):
-        kin_tag += f"_lam{args.lam:.6g}"   # e.g. tf_w_lam0.111111 / tf_w_lam1
+        kin_tag += f"_lam{args.lam:.6g}"
 
-    if args.model == 'drf':
-        tag = f"{kin_tag}_{args.cc}_{args.x}_{args.c}_drf_L{args.n_layers}_{args.prior}"
-    elif args.model == 'rdm':
-        tag = f"{kin_tag}_{args.cc}_{args.x}_{args.c}_rdm_L{args.n_layers}_{args.prior}"
-    else:
-        tag = f"{kin_tag}_{args.cc}_{args.x}_{args.c}_{args.solver}_{args.prior}"
+    tag = f"{kin_tag}_{args.cc}_{args.x}_{args.c}_{args.solver}_{args.prior}"
     if args.sched.lower() not in ['c', 'const']:
-        tag += f"_sched_{args.sched.upper()}"
-    # Append the Hartree variant only when it's not the default, so existing
-    # 'coulomb' run directories keep their names.
+        tag += f"_sched_{args.sched}"
     if args.hart.lower() != 'coulomb':
-        tag += f"_hart_{args.hart.upper()}"
-    return tag
+        tag += f"_hart_{args.hart}"
+    return tag.lower()
 
 
 def setup_directories(args):
@@ -51,7 +41,7 @@ def setup_directories(args):
       glob('Results/H2/{method}/bl_*/')
     """
     bl = 0.0 if args.mol_name in SINGLE_ATOMS else args.bond_length
-    results_dir = f"Results/{args.mol_name}/{_method_tag(args)}/bl_{bl:.4f}"
+    results_dir = f"Results/{args.mol_name}/{_method_tag(args)}/bl_{bl:.2f}"
     ckpt_dir    = f"{results_dir}/Checkpoints"
 
     for directory in [results_dir, ckpt_dir]:
@@ -63,7 +53,7 @@ def setup_directories(args):
 def save_job_params(results_dir, args):
     """Save training parameters to JSON file."""
     job_params = {
-        'model': args.model,
+        'model': 'cnf',
         'mol_name': args.mol_name,
         'bond_length': args.bond_length,
         'epochs': args.epochs,
@@ -78,14 +68,13 @@ def save_job_params(results_dir, args):
         'correlation': args.c,
         'core_correction': args.cc,
         'scheduler': args.sched,
-        'solver': args.solver if args.model == 'cnf' else 'n/a',
-        'n_layers': args.n_layers if args.model in ('drf', 'rdm') else 'n/a',
+        'solver': args.solver,
         'prior': args.prior,
     }
-    
+
     with open(f"{results_dir}/job_params.json", "w") as outfile:
         json.dump(job_params, outfile, indent=4)
-    
+
     return job_params
 
 
@@ -96,7 +85,7 @@ def main():
                         help="Molecule name")
     parser.add_argument("--bond_length", type=float, default=4.4,
                         help="Bond length for the molecule (Bohr)")
-    parser.add_argument("--epochs", type=int, default=500, 
+    parser.add_argument("--epochs", type=int, default=500,
                         help="Number of training epochs")
     parser.add_argument("--bs", type=int, default=512,
                         help="Batch size")
@@ -104,21 +93,16 @@ def main():
                         help="Hidden layer size")
     parser.add_argument("--lr", type=float, default=3e-4,
                         help="Learning rate")
-    parser.add_argument("--prior", type=str, default='db_sir',
+    parser.add_argument("--prior", type=str, default='promolecular',
                     choices=['promolecular', 'db_sir'],
                     help="Prior distribution type")
-    parser.add_argument("--model", type=str, default='cnf',
-                    choices=['cnf', 'drf', 'rdm'],
-                    help="Model type: cnf (continuous normalizing flow), drf (discrete radial flow), rdm (Rezende-Mohamed radial flow)")
-    parser.add_argument("--n_layers", type=int, default=8,
-                    help="Number of radial layers (DRF only)")
-    
+
     # Functionals
     parser.add_argument("--kin", type=str, default='tf_w',
                         choices=['tf', 'w', 'tf_w'],
                         help="Kinetic energy functional")
     parser.add_argument("--lam", type=_lam, default=1/5,
-                        help="Weizsäcker prefactor λ in TF-λW: fraction (1/9, 1/5) or float (0.2, 2.0)")
+                        help="Weizsäcker prefactor λ in TF-λW: fraction or float ")
     parser.add_argument("--nuc", type=str, default='np',
                         help="Nuclear potential functional")
     parser.add_argument("--hart", type=str, default='coulomb',
@@ -132,34 +116,30 @@ def main():
     parser.add_argument("--cc", type=str, default='none',
                         choices=['kato', 'hutcheon', 'none'],
                         help="Core correction functional")
-    
+
     # Training settings
     parser.add_argument("--sched", type=str, default='mix',
                         help="Learning rate scheduler type")
     parser.add_argument("--solver", type=str, default='dopri8',
-                        choices=['dopri5', 'tsit5','dopri8'],
+                        choices=['dopri5', 'tsit5', 'dopri8'],
                         help="ODE solver")
     parser.add_argument("--ckpt_freq", type=int, default=15,
                         help="Checkpoint saving frequency (epochs)")
-    
+
     args = parser.parse_args()
-    
+
     Config.from_args(args)
-    
+
     # Setup directories
     results_dir, ckpt_dir = setup_directories(args)
     Config.set_directories(results_dir, ckpt_dir)
-    
-    # Warn if --lam is given but has no effect
-    if args.kin == 'tf' and args.lam != 1.0:
-        print(f"Warning: --lam {args.lam} has no effect when --kin tf (no Weizsäcker term).")
 
     # Save parameters
     job_params = save_job_params(results_dir, args)
     print(f"Starting training with parameters:")
     print(json.dumps(job_params, indent=2))
     print(f"\nResults will be saved to: {results_dir}")
-    
+
     # Run training
     shared = dict(
         mol_name=args.mol_name,
@@ -181,16 +161,12 @@ def main():
         checkpoint_freq=args.ckpt_freq,
     )
 
-    if args.model == 'drf':
-        model, df, df_ema = training_drf(**shared, n_layers=args.n_layers)
-    elif args.model == 'rdm':
-        model, df, df_ema = training_rdm(**shared, n_layers=args.n_layers)
-    else:
-        model, df, df_ema = training(**shared, solver_type=args.solver)
+    model, df, df_ema = training(**shared, solver_type=args.solver)
 
     print(f"\nTraining complete!")
     print(f"Results saved to: {results_dir}")
     print(f"Final energy (EMA): {df_ema['E'].iloc[-1]:.6f}")
+
 
 if __name__ == "__main__":
     main()

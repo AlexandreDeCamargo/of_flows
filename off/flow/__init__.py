@@ -22,27 +22,8 @@
 
 __version__ = "0.1.0"
 
-from functionals.kinetic import (
-    ThomasFermi,
-    Weizsacker 
+from flow.equiv_flows import (
+    _Flow,
+    Radial_MLP,
+    CNF
 )
-from functionals.external import (
-    NuclearPotential, 
-)
-from functionals.hartree import (
-    CoulombPotential, 
-)
-from functionals.exchange_correlation import (
-    LDA, 
-    CorrelationVWN, 
-    CorrelationPW92,
-    B88Exchange 
-)
-from functionals.core_correction import (
-    KatoCondition, 
-)
-
-from functionals.functional import (
-    Functional,
-)
-
