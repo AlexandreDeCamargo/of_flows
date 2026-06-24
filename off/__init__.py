@@ -21,3 +21,4 @@ from .quadrature import (
 )
 from .train.loss import build_energy_functional, create_loss_function
 from .train.loop import training
+from .ode_solver.eqx_ode import set_tolerances, get_tolerances

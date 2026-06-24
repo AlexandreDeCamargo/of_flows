@@ -6,7 +6,20 @@ from jax import vmap, lax
 
 
 class KatoCondition(eqx.Module):
-    """Kato cusp-condition penalty."""
+    r"""
+    Kato cusp-condition functional.
+
+    Penalizes deviations from the correct electron-nucleus cusp behaviour, weighting
+    the (Weizsacker-like) local kinetic term by a 1s-like envelope
+    w_i(r) = exp(-a Z_i |r - R_i|) around each nucleus.
+
+    Parameters
+    ----------
+    a : float, optional
+        Envelope decay prefactor, by default 2/3.
+    eps : float, optional
+        Small constant for numerical stability, by default 1e-5.
+    """
 
     a: float
     eps: float
@@ -15,11 +28,10 @@ class KatoCondition(eqx.Module):
         self.a = a
         self.eps = eps
 
-    def __call__(self, inp) -> Float[Array, "batch"]:
-        x, score, Ne, mol = inp.x, inp.score, inp.Ne, inp.mol
-
-        def _wi(x, molecule):
-            r = jnp.sqrt(jnp.sum((x - molecule['coords']) ** 2, axis=1) + self.eps ** 2)
+    def __call__(self, den, score, x, Ne, mol, xp) -> Float[Array, "batch"]:
+        r"""Uses x, score, Ne, mol; den, xp unused. Returns the cusp penalty per point."""
+        def _wi(pts, molecule):
+            r = jnp.sqrt(jnp.sum((pts - molecule['coords']) ** 2, axis=1) + self.eps ** 2)
             return jnp.exp(-self.a * molecule['z'] * r)
 
         wi = vmap(_wi, in_axes=(None, 0), out_axes=-1)(x, mol)
@@ -30,15 +42,34 @@ class KatoCondition(eqx.Module):
 
 
 class HutcheonCuspCondition(eqx.Module):
-    """Exact nuclear cusp cost (Hutcheon & Wibowo-Teale, PRB 110, 195146)."""
+    r"""
+    Exact nuclear-cusp cost functional.
+
+    From Hutcheon & Wibowo-Teale, Phys. Rev. B 110, 195146 (2024), Eqs. (4-5, 7):
+
+    E_{\text{CC}} = \sum_i C_i, \qquad
+    C_i(\rho) = \int |\nabla \rho + 2 Z_i \rho\, \hat{r}_i|^2\, w_i(r)\, d^3 r,
+
+    with  \hat{r}_i = (r - R_i)/|r - R_i|  and  w_i(r) = (\pi / Z_i^3)^{1/2} e^{-Z_i |r - R_i|}  [Eq. (5)].
+    Since \nabla \rho = \rho\, s (s the score), the integrand is \rho^2 |s + 2 Z_i \hat{r}_i|^2,
+    and the Kato cusp is satisfied exactly when s = -2 Z_i \hat{r}_i at R_i. With samples
+    from p = \rho / N_e,
+
+    C_i \approx N_e^2\, \mathbb{E}\left[ \rho(x)\, |s(x) + 2 Z_i \hat{r}_i(x)|^2\, w_i(x) \right].
+
+    Parameters
+    ----------
+    eps : float, optional
+        Small constant for numerical stability, by default 1e-8.
+    """
 
     eps: float
 
     def __init__(self, eps=1e-8):
         self.eps = eps
 
-    def __call__(self, inp) -> Float[Array, "batch 1"]:
-        x, den, score, Ne, mol = inp.x, inp.den, inp.score, inp.Ne, inp.mol
+    def __call__(self, den, score, x, Ne, mol, xp) -> Float[Array, "batch 1"]:
+        r"""Uses x, den, score, Ne, mol; xp unused. Returns the cusp cost per point."""
         coords, z = mol['coords'], mol['z']
 
         def per_atom(R_i, Z_i):

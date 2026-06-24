@@ -17,7 +17,6 @@ from .ode_solver.eqx_ode import fwd_ode, rev_ode
 from .utils import one_hot_encode, coordinates, get_solver
 from .promolecular.promolecular_dist import ProMolecularDensity, AtomDBDistribution
 from .train.loss import build_energy_functional
-from .functionals.functional import FunctionalInputs
 
 AA_TO_BOHR = 1.8897259886
 
@@ -72,7 +71,7 @@ def build_grid(atoms, coords, Ne, grid_level=3, basis="6-31G(d,p)", unit="B"):
 
 
 def get_grid(geom, level=3, *, units="angstrom", basis="6-31G(d,p)", spin=0):
-    """User-facing quadrature grid (GradDFT-style ``getGrid``).
+    """User-facing quadrature grid.
 
     Parameters
     ----------
@@ -130,15 +129,15 @@ def quadrature_energy(functional, x_np, rho_np, sc_np, grid_coords, grid_weights
     rc = rho_np[:, None]
     measure = jnp.asarray(w * rho_np)        
 
-    def _inp(sl):
-        return FunctionalInputs(den=jnp.array(rc[sl]), score=jnp.array(sc_np[sl]),
-                                x=jnp.array(x_np[sl]), Ne=Ne, mol=mol_dict, xp=None)
+    def _args(sl):
+        return (jnp.array(rc[sl]), jnp.array(sc_np[sl]), jnp.array(x_np[sl]),
+                Ne, mol_dict, None)
 
-    def local(func):                         
+    def local(func):                         # ∫ f(...)·ρ dr  via the shared _integrate
         out = np.zeros(G)
         for i in range(0, G, chunk):
             sl = slice(i, min(i + chunk, G))
-            out[sl] = np.array(func(_inp(sl))).ravel()
+            out[sl] = np.array(func(*_args(sl))).ravel()
         return float(functional._integrate(jnp.asarray(out), measure))
 
     T    = local(functional.kinetic)

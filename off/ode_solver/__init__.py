@@ -25,6 +25,8 @@ __version__ = "0.1.0"
 from .eqx_ode import (
     fwd_ode,
     rev_ode,
+    set_tolerances,
+    get_tolerances,
 )
 
 from ..flow.equiv_flows import (

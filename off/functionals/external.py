@@ -5,18 +5,44 @@ from jax import vmap
 
 
 class NuclearPotential(eqx.Module):
-    """Electron-nuclei attraction: -Ne·Σ_i Z_i/|x - R_i|."""
+    r"""
+    External electron-nuclei attraction potential.
+
+    V_{\text{ext}}(\boldsymbol{x}) = -N_e \sum_i \frac{Z_i}{|\boldsymbol{x} - \boldsymbol{R}_i|}
+
+    Parameters
+    ----------
+    eps : float, optional
+        Small constant for numerical stability, by default 1e-5.
+    """
 
     eps: float
 
     def __init__(self, eps=1e-5):
         self.eps = eps
 
-    def __call__(self, inp) -> Float[Array, "batch"]:
-        x, Ne, mol = inp.x, inp.Ne, inp.mol
+    def __call__(self, den, score, x, Ne, mol, xp) -> Float[Array, "batch"]:
+        r"""
+        Parameters
+        ----------
+        x : Array
+            Points where the potential is evaluated.
+        Ne : int
+            Number of electrons.
+        mol : dict
+            Nuclear coordinates and charges, {'coords': ..., 'z': ...}.
 
-        def _potential(x, molecule):
-            r = jnp.sqrt(jnp.sum((x - molecule['coords']) ** 2, axis=1)) + self.eps
+        Notes
+        -----
+        den, score, xp are accepted for the shared functional interface but unused here.
+
+        Returns
+        -------
+        jax.Array
+            Electron-nuclei attraction at each point (up to the rho factor).
+        """
+        def _potential(pts, molecule):
+            r = jnp.sqrt(jnp.sum((pts - molecule['coords']) ** 2, axis=1)) + self.eps
             return molecule['z'] / r
 
         r = vmap(_potential, in_axes=(None, 0), out_axes=-1)(x, mol)

@@ -1,4 +1,4 @@
-# OFF: Orbital-Free DFT with Normalizing Flows
+# OFF: An Orbital-Free Density Functional Theory Python library using Normalizing Flows
 
 OFF is a [JAX](https://github.com/google/jax)-based library for **orbital-free density
 functional theory (OF-DFT)** in which the electron density is represented by a
@@ -16,24 +16,18 @@ compilation, vectorization, and GPU acceleration — with
 
 ## Functionality
 
-* Represent the electron density with a continuous normalizing flow; sample it, and
-  evaluate both `ρ_φ(x)` and `∇log ρ_φ(x)` at arbitrary points.
-* Promolecular base distribution (a Gaussian mixture), or an AtomDB-based prior
-  (`--prior db_sir`, optional dependency).
-* A modular library of density functionals — selected or extended without touching
-  the flow:
+The current version of the library has the following capabilities: 
+
+* Provides an implementation of OF-DFT methods with continuous normalizing flows. 
+* A modular library of density functionals:
   * **kinetic**: Thomas–Fermi, von Weizsäcker, and TF-λW;
-  * **exchange**: Dirac/LDA and B88;
+  * **exchange**: LDA and B88;
   * **correlation**: VWN and PW92;
-  * **nuclear attraction**, **Hartree** (a low-variance all-pairs Monte-Carlo
-    estimator, and an exact grid double-sum), and **nuclear-cusp corrections**
-    (Kato, Hutcheon).
-* GradDFT-style functional construction, `F[ρ] = ∫ c_θ[ρ](x)·e[ρ](x) dx`, assembled
-  from `coefficients` and `energy_densities`; a single `EnergyFunctional` receives one
-  shared input bundle and routes it to every component.
-* Optimization with Optax: AdamW, gradient clipping, learning-rate schedules, and an
-  exponential moving average of the noisy Monte-Carlo energy estimate.
-* A deterministic **grid (quadrature) readout** of the energy after training, using a
+  * **nuclear attraction**, 
+  * **Hartree**, and 
+  * **nuclear-cusp corrections** (Kato, Hutcheon).
+* Evaluates density functionals using Monte Carlo estimators. 
+* In addition to Monte Carlo estimators, it also has a deterministic **grid (quadrature) readout** of the energy after training, using a
   [PySCF](https://github.com/pyscf/pyscf) Becke grid converted to `jax.Array`.
 
 ## Install
@@ -101,42 +95,9 @@ print(e["E_total"], e["Ne_integral"])
 ```python
 from off import getGrid
 
-h2_geom = "H 0 0 0; H 0 0 1.4"               # PySCF atom= string
-w_grid, x_grid = getGrid(h2_geom, level=3,
-                         basis="6-31G(d,p)", units="bohr")   # -> (weights, coords)
+h2_geom = "H 0 0 0; H 0 0 1.4"               
+w_grid, x_grid = getGrid(h2_geom, level=3, units="bohr")
 ```
-
-### Define a functional
-
-Every functional is `F[ρ] = ∫ c_θ[ρ]·e[ρ]`, built from a `coefficients` callable and an
-`energy_densities` callable. Fixed functionals use the constant `unit_coefficient`
-(`c = 1`); a learnable one would supply a network instead. Energy densities are returned
-*up to the multiplicative ρ factor* (the Monte-Carlo expectation supplies it).
-
-```python
-import jax.numpy as jnp
-from off import (Functional, unit_coefficient, EnergyFunctional,
-                 tf_weizsacker, NuclearPotential, CoulombPotential)
-
-# LDA exchange energy density (inp bundles den, score, x, Ne, mol, xp)
-def lda_density(inp):
-    l = -(3 / 4) * (3 / jnp.pi) ** (1 / 3) * (inp.Ne ** (4 / 3))
-    return l * inp.den ** (1 / 3)
-
-lda = Functional(coefficients=unit_coefficient, energy_densities=lda_density)
-
-# Assemble the full energy functional; every component receives the same input bundle.
-functional = EnergyFunctional(
-    kinetic  = tf_weizsacker(lam=0.2),       # T_TF + 0.2 T_W
-    external = NuclearPotential(),
-    hartree  = CoulombPotential(),
-    exchange = lda,
-)
-```
-
-Prebuilt functionals are importable directly: `tf`, `weizsacker`, `tf_weizsacker`,
-`lda`, `b88`, `vwn`, `pw92`, `lda_b88`, `NuclearPotential`, `CoulombPotential`,
-`KatoCondition`, `HutcheonCuspCondition`.
 
 ## Package layout
 
