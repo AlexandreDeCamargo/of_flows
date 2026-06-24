@@ -5,8 +5,7 @@ import jax
 import jax.numpy as jnp
 import jax.random as jrnd
 from jax import jit,grad,vmap,hessian,lax 
-from jaxtyping import Array
-from jax._src import prng
+from jaxtyping import Array, PRNGKeyArray
 
 from pyscf.data.nist import BOHR
 
@@ -95,7 +94,7 @@ def score(params: Any, X: Array, fun: callable) -> jax.Array:
     v_score = vmap(_score, in_axes=(None, 0))
     return v_score(params, X)
 
-def batch_generator(key: prng.PRNGKeyArray, batch_size: int, prior_dist):
+def batch_generator(key: PRNGKeyArray, batch_size: int, prior_dist):
     """Generator with optional pre-computed score."""
     
     # Check if prior has its own score method
@@ -121,13 +120,13 @@ def batch_generator(key: prng.PRNGKeyArray, batch_size: int, prior_dist):
     
         yield lax.concatenate((samples0, samples1), 0)
 
-def batch_generator_(key: prng.PRNGKeyArray, batch_size: int, prior_dist: Callable):
+def batch_generator_(key: PRNGKeyArray, batch_size: int, prior_dist: Callable):
     """
     Generator that yields batches of samples from the prior distribution.
 
     Parameters
     ----------
-    key : prng.PRNGKeyArray
+    key : PRNGKeyArray
         Key to generate random numbers.
     batch_size : int
         Size of the batch.
@@ -155,13 +154,13 @@ def batch_generator_(key: prng.PRNGKeyArray, batch_size: int, prior_dist: Callab
 
         yield lax.concatenate((samples0, samples1), 0)
 
-def batche_generator_1D(key: prng.PRNGKeyArray, batch_size: int, prior_dist: Callable):
+def batche_generator_1D(key: PRNGKeyArray, batch_size: int, prior_dist: Callable):
     """
     Generator that yields batches of samples from the prior distribution.
 
     Parameters
     ----------
-    key : prng.PRNGKeyArray
+    key : PRNGKeyArray
         Key to generate random numbers.
     batch_size : int
         Size of the batch.
