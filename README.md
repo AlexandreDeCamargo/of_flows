@@ -137,6 +137,21 @@ off/
 ## Citation
 
 ```bibtex
+@article{deCamargo:MLST:2024,
+doi = {10.1088/2632-2153/ad7226},
+url = {https://doi.org/10.1088/2632-2153/ad7226},
+year = {2024},
+month = {sep},
+publisher = {IOP Publishing},
+volume = {5},
+number = {3},
+pages = {035061},
+author = {de Camargo, Alexandre and Chen, Ricky T Q and Vargas-Hernández, Rodrigo A},
+title = {Leveraging normalizing flows for orbital-free density functional theory},
+journal = {Machine Learning: Science and Technology},
+}
+
+
 @article{off,
   title  = {OFF: An Orbital-Free Density Functional Theory Python library using Normalizing Flows},
   author = {de Camargo, Alexandre and A. Vargas-Hernández, Rodrigo},
