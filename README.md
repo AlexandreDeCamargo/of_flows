@@ -53,17 +53,6 @@ git clone https://github.com/AlexandreDeCamargo/of_flows.git
 cd of_flows
 pip install -e .
 ```
-
-The base install is **CPU-only** and works on every platform. For an **NVIDIA GPU**
-(CUDA 12), add the `gpu` extra:
-
-```bash
-pip install "off[gpu]"
-```
-
-JAX then runs on the GPU automatically when one is available and falls back to the CPU
-otherwise — no code changes needed.
-
 ## Use
 
 Two stages: (1) **train** a normalizing flow for a given molecule and functional, then

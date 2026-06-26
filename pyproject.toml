@@ -18,6 +18,10 @@ classifiers = [
 ]
 dependencies = [
     "jax>=0.6.0",
+    # GPU is the default on Linux x86_64 (CUDA 12). macOS/Windows have no CUDA
+    # wheels, so they install the CPU build automatically. JAX then selects
+    # GPU-or-CPU at runtime (uses the GPU when present, else falls back to CPU).
+    "jax[cuda12]>=0.6.0; sys_platform == 'linux' and platform_machine == 'x86_64'",
     "jaxlib>=0.6.0",
     "equinox>=0.12.0",
     "diffrax>=0.7.0",
@@ -37,10 +41,8 @@ examples = [
     "chex>=0.1.89",
     "numpy>=2.3.0",
 ]
-# GPU (NVIDIA, CUDA 12): `pip install "off[gpu]"`. JAX then runs on the GPU
-# automatically when one is present and falls back to CPU otherwise. The base
-# install (plain jax/jaxlib) is CPU-only and works on every platform.
-gpu = ["jax[cuda12]>=0.6.0"]
+# GPU is not an extra: it is the default on Linux x86_64 via the marker on the
+# core `jax[cuda12]` dependency above. macOS/Windows get the CPU build.
 
 # The 'atom_db' prior needs AtomDB, which is not on PyPI. A direct-URL dependency
 # here would block uploading `off` to PyPI, so it is not listed; install it per
