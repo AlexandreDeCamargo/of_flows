@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo/off_banner.svg" alt="OFF — orbital-free DFT with normalizing flows" width="560">
+  <img src="logo/off_banner.svg" alt="OFF — orbital-free DFT with normalizing flows" width="100%">
 </p>
 
 # OFF: An Orbital-Free Density Functional Theory Python library using Normalizing Flows
