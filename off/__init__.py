@@ -1,6 +1,6 @@
 """OFF — orbital-free DFT with continuous normalizing flows."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .functionals.functional import (
     Functional,

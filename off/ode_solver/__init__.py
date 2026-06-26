@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .eqx_ode import (
     fwd_ode,
