@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo/logo.png" alt="OFF logo" width="420">
+</p>
+
 # OFF: An Orbital-Free Density Functional Theory Python library using Normalizing Flows
 
 OFF is a [JAX](https://github.com/google/jax)-based library for **orbital-free density
