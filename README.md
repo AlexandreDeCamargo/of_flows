@@ -22,24 +22,33 @@ The current version of the library has the following capabilities:
 * A modular library of density functionals:
   * **kinetic**: Thomas–Fermi, von Weizsäcker, and TF-λW;
   * **exchange**: LDA and B88;
-  * **correlation**: VWN and PW92;
+  * **correlation**: VWN96 and PW92;
   * **nuclear attraction**, 
   * **Hartree**, and 
   * **nuclear-cusp corrections** (Kato, Hutcheon).
+* Two base (prior) distributions for the flow: an analytic **promolecular** density
+  (no extra dependencies) and an **`atom_db`** prior built from
+  [AtomDB](https://atomdb.qcdevs.org/api/index.html) atomic densities — install AtomDB
+  only if you use that prior.
 * Evaluates density functionals using Monte Carlo estimators. 
 * In addition to Monte Carlo estimators, it also has a deterministic **grid (quadrature) readout** of the energy after training, using a
   [PySCF](https://github.com/pyscf/pyscf) Becke grid converted to `jax.Array`.
 
 ## Install
 
-A core dependency is [PySCF](https://pyscf.org), which needs `cmake` available on the
-`PATH`. In a fresh environment, from the repository root:
+From PyPI:
 
 ```bash
-pip install -e .
+pip install off
 ```
 
-The `db_sir` prior additionally requires AtomDB; install it only if you use that prior.
+or from a clone of the repository (add `-e` for an editable install):
+
+```bash
+git clone https://github.com/AlexandreDeCamargo/of_flows.git
+cd of_flows
+pip install -e .
+```
 
 ## Use
 
@@ -67,7 +76,7 @@ Results/H2/tf_w_lam0.2_none_lda_b88_x_none_dopri8_promolecular_sched_mix/bl_1.40
 
 Key options: `--kin {tf,w,tf_w}`, `--x {lda,b88_x,lda_b88_x}`, `--c {vwn_c,pw92_c,none}`,
 `--cc {kato,hutcheon,none}`, `--hart {coulomb,coulomb_}` (all-pairs / element-wise),
-`--prior {promolecular,db_sir}`, `--solver {dopri5,tsit5,dopri8}`.
+`--prior {promolecular,atom_db}`, `--solver {dopri5,tsit5,dopri8}`.
 
 ### 2. Evaluate the energy on a grid
 
@@ -99,6 +108,15 @@ h2_geom = "H 0 0 0; H 0 0 1.4"
 w_grid, x_grid = getGrid(h2_geom, level=3, units="bohr")
 ```
 
+## Examples
+
+Worked Jupyter notebooks are in [`Examples/`](Examples/):
+
+* [`H2_training.ipynb`](Examples/H2_training.ipynb) — train a normalizing flow for
+  H₂ from scratch (energy convergence, density along the bond, normalization check).
+* [`H2_loading_quadrature.ipynb`](Examples/H2_loading_quadrature.ipynb) — reload a
+  trained run and evaluate the grid (quadrature) energy.
+
 ## Package layout
 
 ```
@@ -116,8 +134,8 @@ off/
 
 ```bibtex
 @article{off,
-  title  = {Orbital-Free DFT with Normalizing Flows},
-  author = {de Camargo, Alexandre and others},
+  title  = {OFF: An Orbital-Free Density Functional Theory Python library using Normalizing Flows},
+  author = {de Camargo, Alexandre and A. Vargas-Hernández, Rodrigo},
   year   = {2026},
 }
 ```
