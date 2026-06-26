@@ -3,7 +3,7 @@ from jax import lax
 from .functional import Functional, CompositeFunctional, unit_coefficient
 
 
-def lda_density(den, score, x, Ne, mol, xp):
+def lda_eps(den, score, x, Ne, mol, xp):
     r"""
     Local density approximation (LDA) / Dirac exchange functional.
 
@@ -32,7 +32,7 @@ def lda_density(den, score, x, Ne, mol, xp):
     return l * den ** (1 / 3)
 
 
-def b88_density(den, score, x, Ne, mol, xp, clip_cte=1e-30, beta=0.0042):
+def b88_eps(den, score, x, Ne, mol, xp, clip_cte=1e-30, beta=0.0042):
     r"""
     B88 exchange functional.
 
@@ -76,7 +76,7 @@ def b88_density(den, score, x, Ne, mol, xp, clip_cte=1e-30, beta=0.0042):
     return b88_e * Ne ** (2 / 3)
 
 
-def vwn_density(den, score, x, Ne, mol, xp, clip_cte=1e-30):
+def vwn_eps(den, score, x, Ne, mol, xp, clip_cte=1e-30):
     r"""
     VWN correlation functional.
 
@@ -123,7 +123,7 @@ def vwn_density(den, score, x, Ne, mol, xp, clip_cte=1e-30):
     return Ne * e_PF
 
 
-def pw92_density(den, score, x, Ne, mol, xp, clip_cte=1e-30):
+def pw92_eps(den, score, x, Ne, mol, xp, clip_cte=1e-30):
     r"""
     PW92 correlation functional.
 
@@ -163,10 +163,10 @@ def pw92_density(den, score, x, Ne, mol, xp, clip_cte=1e-30):
     return Ne * e_PF
 
 
-lda  = Functional(coefficients=unit_coefficient, energy_densities=lda_density)
-b88  = Functional(coefficients=unit_coefficient, energy_densities=b88_density)
-vwn  = Functional(coefficients=unit_coefficient, energy_densities=vwn_density)
-pw92 = Functional(coefficients=unit_coefficient, energy_densities=pw92_density)
+lda  = Functional(coefficients=unit_coefficient, energy_per_particle=lda_eps)
+b88  = Functional(coefficients=unit_coefficient, energy_per_particle=b88_eps)
+vwn  = Functional(coefficients=unit_coefficient, energy_per_particle=vwn_eps)
+pw92 = Functional(coefficients=unit_coefficient, energy_per_particle=pw92_eps)
 
 
 def lda_b88():

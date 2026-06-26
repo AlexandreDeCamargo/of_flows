@@ -15,7 +15,7 @@ jax.config.update("jax_enable_x64", True)
 from .flow.equiv_flows import CNF
 from .ode_solver.eqx_ode import fwd_ode, rev_ode
 from .utils import one_hot_encode, coordinates, get_solver
-from .promolecular.promolecular_dist import ProMolecularDensity, AtomDBDistribution
+from .promolecular.promolecular_dist import make_prior
 from .train.loss import build_energy_functional
 
 AA_TO_BOHR = 1.8897259886
@@ -44,11 +44,7 @@ def load_model(results_dir, p):
 
 def build_prior(p, z, coords, Ne):
     """Rebuild the base distribution used at training time (must match it)."""
-    if p.get('prior') == 'db_sir':
-        from atomdb import make_promolecule
-        db_prior = make_promolecule(atnums=z, coords=coords, dataset="hci")
-        return AtomDBDistribution(db_prior=db_prior, z=z, coords=coords, Ne=Ne)
-    return ProMolecularDensity(z.ravel(), coords)
+    return make_prior(p.get('prior'), z, coords, Ne)
 
 
 # ── grid construction (PySCF) ─────────────────────────────────────────────────

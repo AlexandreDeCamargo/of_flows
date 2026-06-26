@@ -94,7 +94,7 @@ def main():
     parser.add_argument("--lr", type=float, default=3e-4,
                         help="Learning rate")
     parser.add_argument("--prior", type=str, default='promolecular',
-                    choices=['promolecular', 'db_sir'],
+                    choices=['promolecular', 'atom_db'],
                     help="Prior distribution type")
 
     # Functionals

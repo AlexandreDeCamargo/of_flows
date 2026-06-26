@@ -463,3 +463,28 @@ class SIRDistribution:
         Score uses the target distribution.
         """
         return self.target_distribution.score(values)
+
+
+def make_prior(prior_type, z, coords, Ne, *, dataset="slater"):
+    """Build the base / sampling distribution for ``prior_type``.
+
+    ``'promolecular'`` (the default) uses the analytic promolecular density and
+    needs no extra packages.  ``'atom_db'`` uses AtomDB atomic densities and is
+    the **only** path that imports the optional ``atomdb`` package, so it is
+    imported lazily here — ``import off`` never requires AtomDB.
+
+    ``'db_sir'`` is accepted as a backward-compatible alias of ``'atom_db'`` so
+    runs trained before the rename still load.
+    """
+    if prior_type in ("atom_db", "db_sir"):
+        try:
+            from atomdb import make_promolecule
+        except ImportError as e:
+            raise ImportError(
+                "The 'atom_db' prior requires the optional AtomDB package, which is "
+                "not installed. See the AtomDB documentation: "
+                "https://atomdb.qcdevs.org/api/index.html"
+            ) from e
+        db_prior = make_promolecule(atnums=z, coords=coords, dataset=dataset)
+        return AtomDBDistribution(db_prior=db_prior, z=z, coords=coords, Ne=Ne)
+    return ProMolecularDensity(z.ravel(), coords)

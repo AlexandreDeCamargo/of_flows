@@ -20,7 +20,7 @@ Directory layout assumed (same as main.py):
 
 Usage
 -----
-python atom_energies.py --method tf_w_lam0.2_none_lda_none_dopri8_db_sir_sched_MIX
+python atom_energies.py --method tf_w_lam0.2_none_lda_none_dopri8_atom_db_sched_MIX
 python atom_energies.py --method <tag> --atoms B Be C F H He Li N Ne O \
     --window 1000 --recompute --results_root /path/to/Results
 """
@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser(
     description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("--method", type=str, required=True,
                     help="Method directory name, e.g. "
-                         "tf_w_lam0.2_none_lda_none_dopri8_db_sir_sched_MIX")
+                         "tf_w_lam0.2_none_lda_none_dopri8_atom_db_sched_MIX")
 parser.add_argument("--atoms", type=str, nargs="+",
                     default=["B", "Be", "C", "F", "H", "He", "Li", "N", "Ne", "O"],
                     help="Atoms to process (default: the full set).")

@@ -37,14 +37,15 @@ def unit_coefficient(self, *_):
 
 class Functional(eqx.Module):
     r"""
-    Local density functional,  F[\rho] = \int c_\theta[\rho] \cdot e[\rho]\, d\boldsymbol{x}.
+    Local density functional,  F[\rho] = \int c_\theta[\rho]\, \varepsilon[\rho]\, \rho\, d\boldsymbol{x}.
 
     Every functional shares the explicit signature ``(den, score, x, Ne, mol, xp)``
     -- all inputs are passed even if a given functional ignores some -- and returns
-    its per-point energy density of shape (batch, 1). Assembled from two callables:
+    its per-point energy per particle of shape (batch, 1). Assembled from two callables:
 
-    energy_densities(den, score, x, Ne, mol, xp) -> e[rho]
-        the energy densities, returned up to the rho factor.
+    energy_per_particle(den, score, x, Ne, mol, xp) -> eps[rho]
+        the energy per electron eps(x); the energy density is rho*eps, so the total
+        energy is the rho-weighted average, E = E_rho[eps].
     coefficients(self, cinputs) -> c_theta[rho]
         the weights; :func:`unit_coefficient` (c = 1) for a fixed functional, a
         network for a learned one.
@@ -52,12 +53,12 @@ class Functional(eqx.Module):
         features fed to ``coefficients`` (learned functionals only).
     """
 
-    coefficients:       Callable
-    energy_densities:   Callable
-    coefficient_inputs: Optional[Callable] = None
-    
+    coefficients:        Callable
+    energy_per_particle: Callable
+    coefficient_inputs:  Optional[Callable] = None
+
     def __call__(self, den, score, x, Ne, mol, xp) -> Float[Array, "batch 1"]:
-        e  = self.energy_densities(den, score, x, Ne, mol, xp)
+        e  = self.energy_per_particle(den, score, x, Ne, mol, xp)
         ci = (self.coefficient_inputs(den, score, x, Ne, mol, xp)
               if self.coefficient_inputs is not None else None)
         c  = self.coefficients(self, ci)

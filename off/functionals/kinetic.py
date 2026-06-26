@@ -5,7 +5,7 @@ from .functional import Functional, CompositeFunctional, unit_coefficient
 C_TF = (3. / 10.) * (3. * jnp.pi ** 2) ** (2 / 3)
 
 
-def tf_density(den, score, x, Ne, mol, xp, c=C_TF):
+def tf_eps(den, score, x, Ne, mol, xp, c=C_TF):
     r"""
     Thomas-Fermi kinetic functional.
 
@@ -33,12 +33,12 @@ def tf_density(den, score, x, Ne, mol, xp, c=C_TF):
     Returns
     -------
     jax.Array
-        Thomas-Fermi kinetic energy density (up to the rho factor).
+        Thomas-Fermi kinetic energy.
     """
     return c * (Ne ** (5 / 3)) * den ** (2 / 3)
 
 
-def weizsacker_density(den, score, x, Ne, mol, xp, lam=0.2):
+def weizsacker_eps(den, score, x, Ne, mol, xp, lam=0.2):
     r"""
     von Weizsacker gradient correction.
 
@@ -64,20 +64,19 @@ def weizsacker_density(den, score, x, Ne, mol, xp, lam=0.2):
     Returns
     -------
     jax.Array
-        von Weizsacker kinetic energy density (up to the rho factor).
+        von Weizsacker kinetic energy.
     """
     score_sqr = jnp.einsum('ij,ij->i', score, score)
     return (lam * Ne / 8.) * lax.expand_dims(score_sqr, (1,))
 
 
-tf = Functional(coefficients=unit_coefficient, energy_densities=tf_density)
-
+tf = Functional(coefficients=unit_coefficient, energy_per_particle=tf_eps)
 
 def weizsacker(lam=0.2):
-    r"""von Weizsacker functional with prefactor ``lam`` (see :func:`weizsacker_density`)."""
+    r"""von Weizsacker functional with prefactor ``lam`` (see :func:`weizsacker_eps`)."""
     return Functional(
         coefficients=unit_coefficient,
-        energy_densities=lambda den, score, x, Ne, mol, xp: weizsacker_density(
+        energy_per_particle=lambda den, score, x, Ne, mol, xp: weizsacker_eps(
             den, score, x, Ne, mol, xp, lam),
     )
 

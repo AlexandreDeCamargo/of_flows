@@ -35,8 +35,16 @@ dependencies = [
 examples = [
     "matplotlib>=3.10.0",
     "chex>=0.1.89",
-    "numpy>=2.3.0", 
+    "numpy>=2.3.0",
 ]
+# GPU (NVIDIA, CUDA 12): `pip install "off[gpu]"`. JAX then runs on the GPU
+# automatically when one is present and falls back to CPU otherwise. The base
+# install (plain jax/jaxlib) is CPU-only and works on every platform.
+gpu = ["jax[cuda12]>=0.6.0"]
+
+# The 'atom_db' prior needs AtomDB, which is not on PyPI. A direct-URL dependency
+# here would block uploading `off` to PyPI, so it is not listed; install it per
+# the AtomDB docs: https://atomdb.qcdevs.org/api/index.html
 
 [project.urls]
 Homepage = "https://github.com/AlexandreDeCamargo/of_flows"

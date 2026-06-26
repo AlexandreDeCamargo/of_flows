@@ -10,7 +10,7 @@ from typing import Optional
 
 from ..flow.equiv_flows import CNF
 from ..utils import one_hot_encode, coordinates, batch_generator, get_solver, get_scheduler
-from ..promolecular.promolecular_dist import AtomDBDistribution,SIRDistribution,ProMolecularDensity
+from ..promolecular.promolecular_dist import make_prior, ProMolecularDensity
 from .utils import step
 from .loss import create_loss_function, F_values
 from ..config._config import Config
@@ -165,16 +165,7 @@ def training(mol_name: str,
     solver = get_solver(solver_type)
     optimizer, optimizer_state = setup_optimizer(flow_model, epochs, lr, scheduler_type)
     energies_ema, energies_state = setup_ema()
-    prior_dist = ProMolecularDensity(z.ravel(), coords)
-
-    if prior_type == 'db_sir':
-        from atomdb import make_promolecule   # optional dep — only needed for db_sir
-        db_prior = make_promolecule(atnums=z, coords=coords, dataset="slater")
-        sampling_dist = AtomDBDistribution(
-            db_prior=db_prior, z=z, coords=coords, Ne=Ne
-        )
-    else:
-        sampling_dist = prior_dist
+    sampling_dist = make_prior(prior_type, z, coords, Ne)
 
     gen_batches = batch_generator(key, batch_size, sampling_dist)
     
