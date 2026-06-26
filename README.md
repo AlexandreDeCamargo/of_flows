@@ -53,7 +53,7 @@ git clone https://github.com/AlexandreDeCamargo/of_flows.git
 cd of_flows
 pip install -e .
 ```
-## Use
+# Use
 
 Two stages: (1) **train** a normalizing flow for a given molecule and functional, then
 (2) read out the energy on a **quadrature grid**. Both are exposed as command-line
@@ -98,7 +98,7 @@ result in `energy_summary.json`. The same call from Python:
 from off import grid_energy_from_checkpoint
 
 e = grid_energy_from_checkpoint(
-    "Results/H2/.../bl_1.40", grid_level=3)
+    "Results/H2/tf_w_lam0.2_none_lda_b88_x_none_dopri8_promolecular_sched_mix/bl_1.40", grid_level=3)
 print(e["E_total"], e["Ne_integral"])
 ```
 
@@ -113,11 +113,11 @@ w_grid, x_grid = getGrid(h2_geom, level=3, units="bohr")
 
 ## Examples
 
-Worked Jupyter notebooks are in [`Examples/`](Examples/):
+Worked Jupyter notebooks are in [`examples/`](examples/):
 
-* [`H2_training.ipynb`](Examples/H2_training.ipynb) — train a normalizing flow for
+* [`H2_training.ipynb`](examples/H2_training.ipynb) — train a normalizing flow for
   H₂ from scratch (energy convergence, density along the bond, normalization check).
-* [`H2_loading_quadrature.ipynb`](Examples/H2_loading_quadrature.ipynb) — reload a
+* [`H2_loading_quadrature.ipynb`](examples/H2_loading_quadrature.ipynb) — reload a
   trained run and evaluate the grid (quadrature) energy.
 
 ## Package layout
