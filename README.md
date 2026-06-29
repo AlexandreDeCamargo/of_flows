@@ -28,7 +28,7 @@ The current version of the library has the following capabilities:
   * **exchange**: LDA and B88;
   * **correlation**: VWN96 and PW92;
   * **nuclear attraction**, 
-  * **Hartree**, and 
+  * **Hartree**, 
   * **nuclear-cusp corrections** (Kato, Hutcheon).
 * Two base (prior) distributions for the flow: an analytic **promolecular** density
   (no extra dependencies) and an **`atom_db`** prior built from
